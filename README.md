@@ -1,97 +1,130 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# 🔊 VolumeBooster - React Native Audio Enhancement App
 
-# Getting Started
+A powerful React Native implementation of volume boosting functionality. This app allows users to boost audio levels beyond system limits with fine adjustments, real-time audio device monitoring, and intelligent boost modes.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## 🚀 Key Features
 
-## Step 1: Start Metro
+### **Audio Enhancement**
+- **Volume Control**: Standard device volume slider (0-100%)
+- **Audio Boost**: Loudness enhancement beyond system limits (0-200%)
+- **App-Only vs Device-Wide Boost**: Toggle between boosting only app audio or all device audio
+- **Gradual vs Discrete Boost**: Toggle between continuous (1%) and step-based (10%) boost control
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+### **Real-Time Monitoring**
+- **Live Device Detection**: Automatic detection of audio output devices
+- **Device Information Display**: Shows device name, type, channels, encodings, and sample rates
+- **Volume Monitoring**: Real-time tracking of system volume changes
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+### **User Experience**
+- **Dark/Light Theme**: Automatic system theme detection with modern UI
+- **Safety Warnings**: Visual indicators and warnings for high boost levels
+- **Test Sound**: Built-in 440Hz test tone to verify boost functionality
+- **Cross-platform**: Works on Android (iOS support can be added)
 
-```sh
-# Using npm
-npm start
+## 📊 Boost Levels & Safety
 
-# OR using Yarn
-yarn start
+| Boost Range | Color | dB Gain | Warning Level |
+|-------------|-------|---------|---------------|
+| **0-50%** | Normal | 0-12.5 dB | None |
+| **50-100%** | Green | 12.5-25 dB | Moderate |
+| **100-150%** | Orange | 25-37.5 dB | High |
+| **150-200%** | Red | 37.5-50 dB | ⚠️ Dangerous |
+
+## 🚀 Quick Start
+
+1. Install dependencies:
+```bash
+npm install
 ```
 
-## Step 2: Build and run your app
-
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
-
-```sh
-# Using npm
-npm run android
-
-# OR using Yarn
-yarn android
+2. Run on Android:
+```bash
+npx react-native run-android
 ```
 
-### iOS
+## 🔧 Integration Guide
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+Want to add volume boosting functionality to your React Native app? 
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+**📚 [Complete Integration Guide →](./doc/VOLUME_BOOSTER_README.md#integration-guide---use-in-your-own-project)**
 
-```sh
-bundle install
+The `VolumeBooster` component is completely self-contained and can be easily integrated into any React Native project. See the detailed documentation for step-by-step instructions, required dependencies, and customization options.
+
+## 🏗️ Project Structure
+
+```
+VolumeBooster/
+├── 📱 React Native App
+│   ├── App.tsx                    # Main app entry point with theme management
+│   ├── src/
+│   │   ├── components/
+│   │   │   └── VolumeBooster.tsx  # Main UI component with all controls
+│   │   ├── modules/
+│   │   │   └── VolumeBoosterModule.ts # TypeScript interface for native module
+│   │   └── index.ts              # Main exports
+│   └── package.json              # Dependencies and scripts
+│
+├── 🤖 Android Native Implementation
+│   └── android/app/src/main/java/com/volumebooster/
+│       ├── VolumeBoosterModule.kt    # Core audio processing logic
+│       ├── VolumeBoosterPackage.kt  # React Native module registration
+│       ├── MainActivity.kt          # Android activity
+│       └── MainApplication.kt       # Android application class
+│
+├── 📚 Documentation
+│   ├── README.md                   # This file - project overview
+│   └── doc/
+│       └── VOLUME_BOOSTER_README.md # Detailed technical documentation
+│
+└── ⚙️ Configuration Files
+    ├── tsconfig.json               # TypeScript configuration
+    ├── babel.config.js            # Babel configuration
+    ├── metro.config.js             # Metro bundler configuration
+    └── jest.config.js              # Testing configuration
 ```
 
-Then, and every time you update your native dependencies, run:
+## 🔧 Technical Architecture
 
-```sh
-bundle exec pod install
+### **Audio Processing Flow**
+```
+User Input (Slider) 
+    ↓
+React Native UI (VolumeBooster.tsx)
+    ↓
+TypeScript Interface (VolumeBoosterModule.ts)
+    ↓
+Android Native Module (VolumeBoosterModule.kt)
+    ↓
+Android LoudnessEnhancer API
+    ↓
+Audio Output (Boosted Sound)
 ```
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
+### **Key Components**
 
-```sh
-# Using npm
-npm run ios
+#### **React Native Layer**
+- **VolumeBooster.tsx**: Main UI component handling user interactions (self-contained with themes)
+- **VolumeBoosterModule.ts**: TypeScript interface bridging JS and native code
 
-# OR using Yarn
-yarn ios
-```
+#### **Android Native Layer**
+- **VolumeBoosterModule.kt**: Core audio processing using LoudnessEnhancer API
+- **VolumeBoosterPackage.kt**: React Native module registration
+- **Audio Session Management**: Handles app-only vs device-wide boost modes
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+### **Audio Boost Implementation**
+- **Formula**: `boostLevel * 25 = gain in millibels`
+- **Max Gain**: 50 dB (200% boost)
+- **Session Control**: Uses Android AudioSessionId for app-only boost
+- **Real-time Processing**: Immediate audio enhancement without delay
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+## 📖 Documentation
 
-## Step 3: Modify your app
+For detailed technical documentation, integration guide, and API reference, see [doc/VOLUME_BOOSTER_README.md](./doc/VOLUME_BOOSTER_README.md).
 
-Now that you have successfully run the app, let's make changes!
+## ⚠️ Safety Warning
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+**HIGH BOOST LEVELS CAN CAUSE:**
+- Audio distortion and clipping
+- Potential speaker damage
+- Hearing damage risk
+- **Use responsibly and monitor audio quality!**
