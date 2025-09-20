@@ -14,7 +14,7 @@
  * - Backup and restore functionality
  * 
  * @author VolumeBooster Team
- * @version 1.0.0
+ * @version 1.0.1
  */
 
 import { storageManager } from './StorageManager';
@@ -28,6 +28,7 @@ export interface AppSettings {
   gradualBoost: boolean;
   appOnlyBoost: boolean;
   boostEnabled: boolean;
+  autoVolumeEnabled: boolean;
 }
 
 /**
@@ -70,6 +71,7 @@ export class SettingsManager {
     gradualBoost: false,
     appOnlyBoost: false,
     boostEnabled: false,
+    autoVolumeEnabled: false,
   };
 
   /**
@@ -193,6 +195,10 @@ export class SettingsManager {
 
     if (typeof settings.boostEnabled !== 'boolean') {
       errors.push('BoostEnabled must be a boolean');
+    }
+
+    if (typeof settings.autoVolumeEnabled !== 'boolean') {
+      errors.push('AutoVolumeEnabled must be a boolean');
     }
 
     return {

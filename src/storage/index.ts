@@ -5,7 +5,7 @@
  * for the VolumeBooster app. It exports the main storage managers and types.
  * 
  * @author VolumeBooster Team
- * @version 1.0.0
+ * @version 1.0.1
  */
 
 // Export storage managers

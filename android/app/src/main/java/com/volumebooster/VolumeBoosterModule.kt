@@ -15,7 +15,7 @@
  * React Native UI → TypeScript Interface → This Module → Android Audio APIs
  * 
  * @author VolumeBooster Team
- * @version 1.0.0
+ * @version 1.0.1
  * @since Android API 21+
  */
 package com.volumebooster
@@ -74,6 +74,9 @@ class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : R
     
     /** Flag to control app-only vs device-wide boost mode */
     private var isAppOnlyBoost = false
+    
+    /** Current boost level for tracking */
+    private var currentBoostLevel = 0
     
     /** Last detected audio device ID for change detection */
     private var lastDeviceId: Int? = null
@@ -142,9 +145,9 @@ class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : R
             loudnessEnhancer = LoudnessEnhancer(0)
             
             val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
+            // audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
             
-            // Initialize volume level tracking
+            // Don't change the current volume - just track it
             val currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
             lastVolumeLevel = ((currentVolume.toFloat() / maxVolume) * 100).toInt()
             
@@ -168,7 +171,7 @@ class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : R
      * @param promise Promise to resolve on success or reject on error
      */
     @ReactMethod
-    fun setVolume(volume: Int, promise: Promise) {
+    fun setVolume(volume: Double, promise: Promise) {
         try {
             val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
             val actualVolume = ((volume.toFloat() / 100) * maxVolume).toInt()
@@ -176,6 +179,26 @@ class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : R
             promise.resolve(null)
         } catch (e: Exception) {
             promise.reject("VOLUME_ERROR", "Failed to set volume", e)
+        }
+    }
+
+    /**
+     * Gets the current device volume level
+     * 
+     * Retrieves the current STREAM_MUSIC volume and converts it to percentage (0-100)
+     * This is used to sync the app with the actual device volume when opening
+     * 
+     * @param promise Promise to resolve with current volume percentage
+     */
+    @ReactMethod
+    fun getVolume(promise: Promise) {
+        try {
+            val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            val currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+            val volumePercentage = (currentVolume.toFloat() / maxVolume) * 100
+            promise.resolve(volumePercentage.toDouble())
+        } catch (e: Exception) {
+            promise.reject("VOLUME_ERROR", "Failed to get volume", e)
         }
     }
 
@@ -204,12 +227,10 @@ class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : R
     @ReactMethod
     fun setBoost(boostLevel: Int, promise: Promise) {
         try {
-            if (!isBoostEnabled) {
-                promise.resolve(null)
-                return
-            }
+            // Track current boost level
+            currentBoostLevel = boostLevel
             
-            if (isBackgroundModeEnabled && isServiceBound) {
+            if (isBackgroundModeEnabled && isServiceBound && volumeBoosterService != null) {
                 // Use background service for boost control
                 volumeBoosterService?.setBoost(boostLevel, isAppOnlyBoost)
             } else {
@@ -256,6 +277,43 @@ class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : R
     }
 
     /**
+     * Sets the boost enabled state
+     * 
+     * This method controls whether boost functionality is active or not.
+     * When disabled, boost changes are ignored and no audio enhancement is applied.
+     * 
+     * @param enabled true to enable boost functionality, false to disable
+     * @param promise Promise to resolve on success or reject on error
+     */
+    @ReactMethod
+    fun setBoostEnabled(enabled: Boolean, promise: Promise) {
+        try {
+            isBoostEnabled = enabled
+            
+            if (isBackgroundModeEnabled && isServiceBound && volumeBoosterService != null) {
+                // Use background service for boost control
+                volumeBoosterService?.enableBoost(enabled)
+            } else {
+                // Use local LoudnessEnhancer for foreground boost
+                if (loudnessEnhancer != null) {
+                    if (!enabled) {
+                        // If disabling boost, turn off loudness enhancer and set gain to 0
+                        loudnessEnhancer?.setTargetGain(0)
+                        loudnessEnhancer?.enabled = false
+                    } else {
+                        // If enabling boost, turn on loudness enhancer
+                        loudnessEnhancer?.enabled = true
+                    }
+                }
+            }
+            
+            promise.resolve(null)
+        } catch (e: Exception) {
+            promise.reject("BOOST_ENABLED_ERROR", "Failed to set boost enabled state", e)
+        }
+    }
+
+    /**
      * Toggles between app-only and device-wide boost modes
      * 
      * This method switches the LoudnessEnhancer session ID:
@@ -273,12 +331,17 @@ class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : R
         try {
             isAppOnlyBoost = enabled
             
-            // Reinitialize loudness enhancer with appropriate session ID
-            loudnessEnhancer?.release()
-            loudnessEnhancer = if (enabled) {
-                LoudnessEnhancer(audioSessionID)
+            if (isBackgroundModeEnabled && isServiceBound && volumeBoosterService != null) {
+                // Use background service for boost control
+                volumeBoosterService?.setBoost(currentBoostLevel, enabled)
             } else {
-                LoudnessEnhancer(0)
+                // Reinitialize loudness enhancer with appropriate session ID
+                loudnessEnhancer?.release()
+                loudnessEnhancer = if (enabled) {
+                    LoudnessEnhancer(audioSessionID)
+                } else {
+                    LoudnessEnhancer(0)
+                }
             }
             
             promise.resolve(null)

@@ -5,10 +5,11 @@ A powerful React Native implementation of volume boosting functionality with **b
 ## 🚀 Key Features
 
 ### **Audio Enhancement**
-- **Volume Control**: Standard device volume slider (0-100%)
+- **Volume Control**: Standard device volume slider (0-100%) with device synchronization
 - **Audio Boost**: Loudness enhancement beyond system limits (0-200%)
 - **App-Only vs Device-Wide Boost**: Toggle between boosting only app audio or all device audio
 - **Gradual vs Discrete Boost**: Toggle between continuous (1%) and step-based (10%) boost control
+- **Independent Controls**: All toggles work independently for flexible configuration
 
 ### **🔄 Background Processing** ⭐ **NEW**
 - **Background Mode**: Audio boost continues working even when app is closed
@@ -16,6 +17,13 @@ A powerful React Native implementation of volume boosting functionality with **b
 - **Persistent Notification**: Shows current boost level and mode in notification bar
 - **Service Status Monitoring**: Real-time service health checking
 - **Battery Optimized**: Efficient background operation with minimal resource usage
+- **Volume Preservation**: Background mode preserves current device volume
+
+### **🎯 Smart Volume Management** ⭐ **NEW**
+- **Auto-Volume Mode**: Automatically sets device volume to 100% only during audio playback
+- **Volume Synchronization**: App syncs with actual device volume on startup
+- **Original Volume Backup**: Remembers and restores original volume after playback
+- **Manual Volume Updates**: Backup updates when user manually changes volume
 
 ### **Real-Time Monitoring**
 - **Live Device Detection**: Automatic detection of audio output devices
@@ -27,6 +35,7 @@ A powerful React Native implementation of volume boosting functionality with **b
 - **Safety Warnings**: Visual indicators and warnings for high boost levels
 - **Test Sound**: Built-in 440Hz test tone to verify boost functionality
 - **Instant Toggle**: Seamless background mode switching without popup interruptions
+- **Modern Loading Screen**: Animated loading with progress tracking
 - **Cross-platform**: Works on Android (iOS support can be added)
 
 ## 📊 Boost Levels & Safety
@@ -50,10 +59,21 @@ npm install
 npx react-native run-android
 ```
 
-3. **Enable Background Mode** (Optional):
+3. **Configure Audio Settings**:
+   - **Volume Control**: Adjust device volume (0-100%)
+   - **Boost Level**: Set audio boost (0-200%) with safety warnings
+   - **Boost Mode**: Choose App-Only or Device-Wide boost
+   - **Gradual Control**: Toggle between 1% and 10% increments
+
+4. **Enable Background Mode** (Optional):
    - Toggle the "Background Mode" switch in the app
    - Audio boost will continue working even when app is closed
    - A persistent notification will show current boost level
+
+5. **Use Auto-Volume** (Optional):
+   - Enable "Auto-Volume" for smart volume management
+   - Device volume automatically sets to 100% only during audio playback
+   - Original volume is restored after playback ends
 
 ## 🔄 Background Mode Usage
 
@@ -70,6 +90,22 @@ npx react-native run-android
 - ✅ **Status Indicators**: Real-time service status display
 - ✅ **Battery Efficient**: Optimized background operation
 - ✅ **Instant Control**: Seamless toggle without interruptions
+
+## 🎯 Auto-Volume Mode Usage
+
+### **How Auto-Volume Works:**
+1. **Enable Auto-Volume**: Toggle the "Auto-Volume" switch
+2. **Backup Current Volume**: App remembers your current volume level
+3. **Audio Playback Detection**: When app plays audio (test sound, etc.)
+4. **Automatic Volume Boost**: Device volume temporarily sets to 100%
+5. **Volume Restoration**: Original volume restored after playback ends
+
+### **Auto-Volume Features:**
+- ✅ **Smart Detection**: Only activates during actual audio playback
+- ✅ **Volume Backup**: Remembers your preferred volume level
+- ✅ **Automatic Restoration**: Returns to original volume after playback
+- ✅ **Manual Updates**: Backup updates when you manually change volume
+- ✅ **Playback Protection**: Prevents backup updates during temporary volume changes
 
 ## 🔧 Integration Guide
 
@@ -143,11 +179,27 @@ Continuous Audio Boost (Even When App Closed)
 Service Status Monitoring (Every 2 seconds)
 ```
 
+### **🎯 Auto-Volume Processing Flow** ⭐ **NEW**
+```
+Auto-Volume Toggle ON
+    ↓
+Backup Current Device Volume
+    ↓
+Audio Playback Detection
+    ↓
+Set Device Volume to 100%
+    ↓
+Audio Playback Ends
+    ↓
+Restore Original Volume
+```
+
 ### **Key Components**
 
 #### **React Native Layer**
 - **VolumeBooster.tsx**: Main UI component handling user interactions (self-contained with themes)
 - **VolumeBoosterModule.ts**: TypeScript interface bridging JS and native code
+- **SettingsManager.ts**: Centralized settings management with persistence
 
 #### **Android Native Layer**
 - **VolumeBoosterModule.kt**: Core audio processing using LoudnessEnhancer API
@@ -161,6 +213,7 @@ Service Status Monitoring (Every 2 seconds)
 - **Session Control**: Uses Android AudioSessionId for app-only boost
 - **Real-time Processing**: Immediate audio enhancement without delay
 - **Background Processing**: ⭐ **NEW** - Continuous boost via foreground service
+- **Independent Controls**: ⭐ **NEW** - All toggles work independently for flexible configuration
 
 ## 📖 Documentation
 

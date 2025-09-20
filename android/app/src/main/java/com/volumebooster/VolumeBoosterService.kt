@@ -13,7 +13,7 @@
  * - Provides service control methods for React Native integration
  * 
  * @author VolumeBooster Team
- * @version 1.0.0
+ * @version 1.0.1
  * @since Android API 21+
  */
 package com.volumebooster
@@ -110,9 +110,9 @@ class VolumeBoosterService : Service() {
             // Initialize with device-wide boost by default
             loudnessEnhancer = LoudnessEnhancer(0)
             
-            // Set device volume to maximum for optimal boost effect
-            val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
+            // Don't change the current volume - preserve user's volume setting
+            // The boost will work with whatever volume the user has set
+            android.util.Log.d("VolumeBoosterService", "Audio system initialized - preserving current volume")
             
         } catch (e: Exception) {
             android.util.Log.e("VolumeBoosterService", "Failed to initialize audio system", e)
@@ -169,6 +169,8 @@ class VolumeBoosterService : Service() {
                 loudnessEnhancer?.setTargetGain(gainInMillibels)
                 loudnessEnhancer?.setEnabled(true)
             } else {
+                // When disabling boost, set gain to 0 and disable
+                loudnessEnhancer?.setTargetGain(0)
                 loudnessEnhancer?.setEnabled(false)
             }
             

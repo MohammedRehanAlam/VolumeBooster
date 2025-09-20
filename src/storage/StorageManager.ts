@@ -12,7 +12,7 @@
  * - Backup and restore functionality
  * 
  * @author VolumeBooster Team
- * @version 1.0.0
+ * @version 1.0.1
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';

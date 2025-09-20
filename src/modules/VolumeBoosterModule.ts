@@ -16,7 +16,7 @@
  * React Native UI → This Interface → Android Native Module → Android Audio APIs
  * 
  * @author VolumeBooster Team
- * @version 1.0.0
+ * @version 1.0.1
  * @since React Native 0.81+
  */
 
@@ -60,6 +60,17 @@ interface VolumeBoosterModule {
   setVolume(volume: number): Promise<void>;
 
   /**
+   * Gets the current device volume level
+   * 
+   * Retrieves the current STREAM_MUSIC volume and converts it to percentage (0-100)
+   * This is used to sync the app with the actual device volume when opening
+   * 
+   * @returns Promise<number> Resolves with current volume percentage (0-100)
+   * @throws Rejects with "VOLUME_ERROR" if volume retrieval fails
+   */
+  getVolume(): Promise<number>;
+
+  /**
    * Sets the audio boost level
    * 
    * Applies real-time audio enhancement using Android LoudnessEnhancer API.
@@ -70,6 +81,18 @@ interface VolumeBoosterModule {
    * @throws Rejects with "BOOST_ERROR" if boost application fails
    */
   setBoost(boostLevel: number): Promise<void>;
+
+  /**
+   * Sets the boost enabled state
+   *
+   * Controls whether boost functionality is active or not.
+   * When disabled, boost changes are ignored and no audio enhancement is applied.
+   *
+   * @param enabled true to enable boost functionality, false to disable
+   * @returns Promise<void> Resolves when boost state is set
+   * @throws Rejects with "BOOST_ENABLED_ERROR" if boost state setting fails
+   */
+  setBoostEnabled(enabled: boolean): Promise<void>;
 
   /**
    * Toggles between app-only and device-wide boost modes

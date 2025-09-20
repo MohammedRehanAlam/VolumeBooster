@@ -5,25 +5,30 @@
 2. [Architecture](#architecture)
 3. [Technical Implementation](#technical-implementation)
 4. [Background Processing](#background-processing) ⭐ **NEW**
-5. [File Structure](#file-structure)
-6. [API Reference](#api-reference)
-7. [Development Guide](#development-guide)
-8. [Integration Guide](#integration-guide)
-9. [Troubleshooting](#troubleshooting)
+5. [Smart Volume Management](#smart-volume-management) ⭐ **NEW**
+6. [File Structure](#file-structure)
+7. [API Reference](#api-reference)
+8. [Development Guide](#development-guide)
+9. [Integration Guide](#integration-guide)
+10. [Troubleshooting](#troubleshooting)
 
 ## 🎯 Project Overview
 
 VolumeBooster is a React Native application that provides advanced audio enhancement capabilities beyond standard system volume limits. The app uses Android's LoudnessEnhancer API to apply real-time audio processing and boost audio levels up to 200% (50 dB gain) with **background processing support**.
 
 ### Key Features
-- **Volume Control**: Standard device volume (0-100%)
-- **Audio Boost**: Enhanced audio levels (0-200%)
+- **Volume Control**: Standard device volume (0-100%) with device synchronization
+- **Audio Boost**: Enhanced audio levels (0-200%) with independent controls
 - **Dual Boost Modes**: App-only vs Device-wide audio processing
+- **Gradual Control**: Toggle between 1% and 10% boost increments
 - **Real-time Monitoring**: Live audio device and volume tracking
 - **Safety Features**: Color-coded warnings and safety alerts
 - **Test Sound**: Built-in audio verification system
 - **Theme Support**: Automatic dark/light theme detection
 - **🔄 Background Processing**: ⭐ **NEW** - Continuous boost even when app is closed
+- **🎯 Smart Volume Management**: ⭐ **NEW** - Auto-volume with playback detection
+- **⚙️ Independent Controls**: ⭐ **NEW** - All toggles work independently
+- **📱 Modern UI**: ⭐ **NEW** - Animated loading screen with progress tracking
 
 ## 🏗️ Architecture
 
@@ -176,6 +181,107 @@ Required Android permissions for background operation:
 7. **Health Monitoring**: Service status checked every 2 seconds
 8. **User Disables**: Service stops and notification disappears
 
+## 🎯 Smart Volume Management ⭐ **NEW**
+
+### Auto-Volume Feature Overview
+The Auto-Volume feature provides intelligent volume management that automatically adjusts device volume during audio playback while preserving the user's preferred volume level.
+
+### Auto-Volume Architecture
+```
+Auto-Volume Toggle ON
+    ↓
+Backup Current Device Volume
+    ↓
+Audio Playback Detection
+    ↓
+Set Device Volume to 100%
+    ↓
+Audio Playback Ends
+    ↓
+Restore Original Volume
+```
+
+### Auto-Volume Components
+
+#### **VolumeBooster.tsx**
+- **Auto-Volume State**: `autoVolumeEnabled` and `originalVolume` state management
+- **Playback Detection**: `isAudioPlaying` flag for playback state tracking
+- **Volume Backup**: `updateOriginalVolumeBackup()` function for manual volume updates
+- **Playback Handlers**: `handleAudioPlaybackStart()` and `handleAudioPlaybackEnd()`
+
+#### **VolumeBoosterModule.kt**
+- **Volume Retrieval**: `getVolume()` method returns current device volume as decimal
+- **Volume Setting**: `setVolume()` method accepts decimal values for precision
+- **Volume Sync**: App synchronizes with actual device volume on startup
+
+### Auto-Volume Features
+
+#### **Smart Detection**
+- **Playback-Only Activation**: Only activates during actual audio playback
+- **Test Sound Integration**: Automatically handles test sound playback
+- **Manual Volume Protection**: Prevents backup updates during temporary changes
+
+#### **Volume Management**
+- **Automatic Backup**: Remembers user's preferred volume level
+- **Temporary Boost**: Sets device volume to 100% only during playback
+- **Automatic Restoration**: Returns to original volume after playback ends
+- **Manual Updates**: Backup updates when user manually changes volume
+
+#### **Precision Handling**
+- **Decimal Support**: Handles volume levels with decimal precision
+- **Display Formatting**: Shows volume with appropriate decimal places
+- **Synchronization**: App syncs with actual device volume on startup
+
+### Auto-Volume API
+
+#### **Volume Management Methods**
+```typescript
+// Get current device volume (decimal precision)
+await VolumeBoosterModule.getVolume(): Promise<number>
+
+// Set device volume (decimal precision)
+await VolumeBoosterModule.setVolume(volume: number): Promise<void>
+```
+
+#### **Auto-Volume State Management**
+```typescript
+// Auto-volume enabled state
+const [autoVolumeEnabled, setAutoVolumeEnabled] = useState(false)
+
+// Original volume backup
+const [originalVolume, setOriginalVolume] = useState<number | null>(null)
+
+// Audio playback state
+const [isAudioPlaying, setIsAudioPlaying] = useState(false)
+```
+
+### Auto-Volume Usage Flow
+
+#### **Enabling Auto-Volume**
+1. **User Toggles**: Auto-Volume switch turned ON
+2. **Volume Backup**: Current device volume saved as `originalVolume`
+3. **State Update**: `autoVolumeEnabled` set to `true`
+4. **Settings Save**: Auto-volume preference saved to storage
+
+#### **During Audio Playback**
+1. **Playback Start**: `handleAudioPlaybackStart()` called
+2. **Volume Boost**: Device volume set to 100%
+3. **Playback Flag**: `isAudioPlaying` set to `true`
+4. **Backup Protection**: Manual volume changes don't update backup
+
+#### **After Audio Playback**
+1. **Playback End**: `handleAudioPlaybackEnd()` called
+2. **Volume Restore**: Device volume restored to `originalVolume`
+3. **Playback Flag**: `isAudioPlaying` set to `false`
+4. **Backup Ready**: Manual volume changes can update backup again
+
+### Auto-Volume Benefits
+- ✅ **Smart Activation**: Only changes volume during actual audio playback
+- ✅ **Volume Preservation**: Remembers and restores user's preferred volume
+- ✅ **Precision Handling**: Supports decimal volume levels
+- ✅ **Manual Updates**: Backup updates when user changes volume manually
+- ✅ **Playback Protection**: Prevents backup corruption during temporary changes
+
 ## 📁 File Structure
 
 ### React Native Layer
@@ -219,9 +325,21 @@ const maxVolume = await VolumeBoosterModule.initializeAudio();
 ```
 
 #### `setVolume(volume: number): Promise<void>`
-Sets device volume level (0-100%).
+Sets device volume level (0-100%) with decimal precision support.
 ```typescript
-await VolumeBoosterModule.setVolume(75); // 75% volume
+await VolumeBoosterModule.setVolume(75.5); // 75.5% volume
+```
+
+#### `getVolume(): Promise<number>` ⭐ **NEW**
+Gets current device volume level (0-100%) with decimal precision.
+```typescript
+const currentVolume = await VolumeBoosterModule.getVolume(); // Returns decimal value
+```
+
+#### `setBoostEnabled(enabled: boolean): Promise<void>` ⭐ **NEW**
+Controls whether boost functionality is active or not.
+```typescript
+await VolumeBoosterModule.setBoostEnabled(true); // Enable boost functionality
 ```
 
 #### `setBoost(boostLevel: number): Promise<void>`
@@ -708,8 +826,12 @@ Here's exactly what you need to copy for full integration:
 
 ```
 📁 Files to Copy:
-├── src/components/VolumeBooster.tsx          # Main UI (self-contained)
+├── src/components/VolumeBooster.tsx          # Main UI (self-contained with themes)
 ├── src/modules/VolumeBoosterModule.ts        # TypeScript interface
+├── src/storage/
+│   ├── SettingsManager.ts                   # Centralized settings management ⭐ NEW
+│   ├── StorageManager.ts                    # Storage abstraction layer ⭐ NEW
+│   └── index.ts                             # Storage exports ⭐ NEW
 ├── android/app/src/main/java/com/volumebooster/
 │   ├── VolumeBoosterModule.kt               # Core audio logic
 │   ├── VolumeBoosterService.kt             # Background service ⭐ NEW
@@ -719,6 +841,7 @@ Here's exactly what you need to copy for full integration:
 
 📦 Dependencies to Install:
 ├── @react-native-community/slider
+├── @react-native-async-storage/async-storage ⭐ NEW
 ├── react-native-navigation-bar-color
 └── react-native-safe-area-context
 ```
