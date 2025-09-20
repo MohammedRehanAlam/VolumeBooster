@@ -1,6 +1,6 @@
 # 🔊 VolumeBooster - React Native Audio Enhancement App
 
-A powerful React Native implementation of volume boosting functionality. This app allows users to boost audio levels beyond system limits with fine adjustments, real-time audio device monitoring, and intelligent boost modes.
+A powerful React Native implementation of volume boosting functionality with **background processing capabilities**. This app allows users to boost audio levels beyond system limits with fine adjustments, real-time audio device monitoring, intelligent boost modes, and **continuous background operation**.
 
 ## 🚀 Key Features
 
@@ -9,6 +9,13 @@ A powerful React Native implementation of volume boosting functionality. This ap
 - **Audio Boost**: Loudness enhancement beyond system limits (0-200%)
 - **App-Only vs Device-Wide Boost**: Toggle between boosting only app audio or all device audio
 - **Gradual vs Discrete Boost**: Toggle between continuous (1%) and step-based (10%) boost control
+
+### **🔄 Background Processing** ⭐ **NEW**
+- **Background Mode**: Audio boost continues working even when app is closed
+- **Foreground Service**: Android foreground service maintains boost functionality
+- **Persistent Notification**: Shows current boost level and mode in notification bar
+- **Service Status Monitoring**: Real-time service health checking
+- **Battery Optimized**: Efficient background operation with minimal resource usage
 
 ### **Real-Time Monitoring**
 - **Live Device Detection**: Automatic detection of audio output devices
@@ -19,6 +26,7 @@ A powerful React Native implementation of volume boosting functionality. This ap
 - **Dark/Light Theme**: Automatic system theme detection with modern UI
 - **Safety Warnings**: Visual indicators and warnings for high boost levels
 - **Test Sound**: Built-in 440Hz test tone to verify boost functionality
+- **Instant Toggle**: Seamless background mode switching without popup interruptions
 - **Cross-platform**: Works on Android (iOS support can be added)
 
 ## 📊 Boost Levels & Safety
@@ -41,6 +49,27 @@ npm install
 ```bash
 npx react-native run-android
 ```
+
+3. **Enable Background Mode** (Optional):
+   - Toggle the "Background Mode" switch in the app
+   - Audio boost will continue working even when app is closed
+   - A persistent notification will show current boost level
+
+## 🔄 Background Mode Usage
+
+### **How to Use Background Mode:**
+1. **Set Boost Level**: Adjust boost slider to desired level (0-200%)
+2. **Enable Background Mode**: Toggle the "Background Mode" switch
+3. **Close App**: Audio boost continues working in background
+4. **Check Notification**: Persistent notification shows boost status
+5. **Disable When Done**: Toggle background mode off to stop service
+
+### **Background Mode Features:**
+- ✅ **Continuous Boost**: Works even when app is closed
+- ✅ **Service Monitoring**: Automatic health checking every 2 seconds
+- ✅ **Status Indicators**: Real-time service status display
+- ✅ **Battery Efficient**: Optimized background operation
+- ✅ **Instant Control**: Seamless toggle without interruptions
 
 ## 🔧 Integration Guide
 
@@ -67,6 +96,7 @@ VolumeBooster/
 ├── 🤖 Android Native Implementation
 │   └── android/app/src/main/java/com/volumebooster/
 │       ├── VolumeBoosterModule.kt    # Core audio processing logic
+│       ├── VolumeBoosterService.kt  # Background foreground service ⭐ NEW
 │       ├── VolumeBoosterPackage.kt  # React Native module registration
 │       ├── MainActivity.kt          # Android activity
 │       └── MainApplication.kt       # Android application class
@@ -100,6 +130,19 @@ Android LoudnessEnhancer API
 Audio Output (Boosted Sound)
 ```
 
+### **🔄 Background Processing Flow** ⭐ **NEW**
+```
+Background Mode Toggle
+    ↓
+VolumeBoosterService (Foreground Service)
+    ↓
+Persistent Notification Display
+    ↓
+Continuous Audio Boost (Even When App Closed)
+    ↓
+Service Status Monitoring (Every 2 seconds)
+```
+
 ### **Key Components**
 
 #### **React Native Layer**
@@ -108,6 +151,7 @@ Audio Output (Boosted Sound)
 
 #### **Android Native Layer**
 - **VolumeBoosterModule.kt**: Core audio processing using LoudnessEnhancer API
+- **VolumeBoosterService.kt**: ⭐ **NEW** - Background foreground service for continuous boost
 - **VolumeBoosterPackage.kt**: React Native module registration
 - **Audio Session Management**: Handles app-only vs device-wide boost modes
 
@@ -116,6 +160,7 @@ Audio Output (Boosted Sound)
 - **Max Gain**: 50 dB (200% boost)
 - **Session Control**: Uses Android AudioSessionId for app-only boost
 - **Real-time Processing**: Immediate audio enhancement without delay
+- **Background Processing**: ⭐ **NEW** - Continuous boost via foreground service
 
 ## 📖 Documentation
 

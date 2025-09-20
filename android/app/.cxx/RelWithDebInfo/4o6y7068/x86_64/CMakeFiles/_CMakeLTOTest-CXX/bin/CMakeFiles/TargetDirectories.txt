@@ -1,0 +1,4 @@
+C:/Users/moham/VolumeBooster/android/app/.cxx/RelWithDebInfo/4o6y7068/x86_64/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/foo.dir
+C:/Users/moham/VolumeBooster/android/app/.cxx/RelWithDebInfo/4o6y7068/x86_64/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/boo.dir
+C:/Users/moham/VolumeBooster/android/app/.cxx/RelWithDebInfo/4o6y7068/x86_64/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/edit_cache.dir
+C:/Users/moham/VolumeBooster/android/app/.cxx/RelWithDebInfo/4o6y7068/x86_64/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/rebuild_cache.dir

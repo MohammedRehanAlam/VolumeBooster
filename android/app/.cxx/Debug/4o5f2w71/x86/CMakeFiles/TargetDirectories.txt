@@ -1,6 +1,9 @@
 C:/Users/moham/VolumeBooster/android/app/.cxx/Debug/4o5f2w71/x86/CMakeFiles/appmodules.dir
 C:/Users/moham/VolumeBooster/android/app/.cxx/Debug/4o5f2w71/x86/CMakeFiles/edit_cache.dir
 C:/Users/moham/VolumeBooster/android/app/.cxx/Debug/4o5f2w71/x86/CMakeFiles/rebuild_cache.dir
+C:/Users/moham/VolumeBooster/android/app/.cxx/Debug/4o5f2w71/x86/rnasyncstorage_autolinked_build/CMakeFiles/react_codegen_rnasyncstorage.dir
+C:/Users/moham/VolumeBooster/android/app/.cxx/Debug/4o5f2w71/x86/rnasyncstorage_autolinked_build/CMakeFiles/edit_cache.dir
+C:/Users/moham/VolumeBooster/android/app/.cxx/Debug/4o5f2w71/x86/rnasyncstorage_autolinked_build/CMakeFiles/rebuild_cache.dir
 C:/Users/moham/VolumeBooster/android/app/.cxx/Debug/4o5f2w71/x86/RNCSlider_autolinked_build/CMakeFiles/react_codegen_RNCSlider.dir
 C:/Users/moham/VolumeBooster/android/app/.cxx/Debug/4o5f2w71/x86/RNCSlider_autolinked_build/CMakeFiles/edit_cache.dir
 C:/Users/moham/VolumeBooster/android/app/.cxx/Debug/4o5f2w71/x86/RNCSlider_autolinked_build/CMakeFiles/rebuild_cache.dir

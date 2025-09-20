@@ -44,6 +44,7 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
+  include("C:/Users/moham/VolumeBooster/android/app/.cxx/Debug/4o5f2w71/x86/rnasyncstorage_autolinked_build/cmake_install.cmake")
   include("C:/Users/moham/VolumeBooster/android/app/.cxx/Debug/4o5f2w71/x86/RNCSlider_autolinked_build/cmake_install.cmake")
   include("C:/Users/moham/VolumeBooster/android/app/.cxx/Debug/4o5f2w71/x86/rngesturehandler_codegen_autolinked_build/cmake_install.cmake")
   include("C:/Users/moham/VolumeBooster/android/app/.cxx/Debug/4o5f2w71/x86/rnreanimated_autolinked_build/cmake_install.cmake")

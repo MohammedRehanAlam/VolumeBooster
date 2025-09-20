@@ -136,6 +136,60 @@ interface VolumeBoosterModule {
    * background processing when monitoring is no longer needed.
    */
   stopVolumeMonitoring(): void;
+
+  // ============================================================================
+  // BACKGROUND SERVICE CONTROL METHODS
+  // ============================================================================
+
+  /**
+   * Enables or disables background mode for audio boost
+   * 
+   * When background mode is enabled:
+   * - Starts the VolumeBoosterService as a foreground service
+   * - Binds to the service for communication
+   * - Audio boost continues working even when app is closed
+   * - Shows persistent notification indicating boost is active
+   * 
+   * When background mode is disabled:
+   * - Stops the foreground service
+   * - Unbinds from the service
+   * - Audio boost only works when app is active
+   * 
+   * @param enabled true to enable background mode, false to disable
+   * @returns Promise<boolean> Resolves with true if enabled, false if disabled
+   * @throws Rejects with "BACKGROUND_MODE_ERROR" if operation fails
+   */
+  setBackgroundMode(enabled: boolean): Promise<boolean>;
+
+  /**
+   * Checks if background mode is currently enabled
+   * 
+   * @returns Promise<boolean> Resolves with boolean indicating background mode status
+   */
+  isBackgroundModeEnabled(): Promise<boolean>;
+
+  /**
+   * Checks if the background service is currently running
+   * 
+   * @returns Promise<boolean> Resolves with boolean indicating service status
+   */
+  isBackgroundServiceRunning(): Promise<boolean>;
+
+  /**
+   * Gets the current boost level from the background service
+   * 
+   * @returns Promise<number> Resolves with current boost level (0-200)
+   * @throws Rejects with "GET_BOOST_ERROR" if retrieval fails
+   */
+  getBackgroundBoostLevel(): Promise<number>;
+
+  /**
+   * Checks if boost is currently active in background service
+   * 
+   * @returns Promise<boolean> Resolves with boolean indicating boost status
+   * @throws Rejects with "BOOST_STATUS_ERROR" if status check fails
+   */
+  isBackgroundBoostActive(): Promise<boolean>;
 }
 
 // ============================================================================

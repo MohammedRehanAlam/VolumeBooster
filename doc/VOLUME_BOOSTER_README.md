@@ -4,15 +4,16 @@
 1. [Project Overview](#project-overview)
 2. [Architecture](#architecture)
 3. [Technical Implementation](#technical-implementation)
-4. [File Structure](#file-structure)
-5. [API Reference](#api-reference)
-6. [Development Guide](#development-guide)
-7. [Integration Guide](#integration-guide)
-8. [Troubleshooting](#troubleshooting)
+4. [Background Processing](#background-processing) ⭐ **NEW**
+5. [File Structure](#file-structure)
+6. [API Reference](#api-reference)
+7. [Development Guide](#development-guide)
+8. [Integration Guide](#integration-guide)
+9. [Troubleshooting](#troubleshooting)
 
 ## 🎯 Project Overview
 
-VolumeBooster is a React Native application that provides advanced audio enhancement capabilities beyond standard system volume limits. The app uses Android's LoudnessEnhancer API to apply real-time audio processing and boost audio levels up to 200% (50 dB gain).
+VolumeBooster is a React Native application that provides advanced audio enhancement capabilities beyond standard system volume limits. The app uses Android's LoudnessEnhancer API to apply real-time audio processing and boost audio levels up to 200% (50 dB gain) with **background processing support**.
 
 ### Key Features
 - **Volume Control**: Standard device volume (0-100%)
@@ -22,6 +23,7 @@ VolumeBooster is a React Native application that provides advanced audio enhance
 - **Safety Features**: Color-coded warnings and safety alerts
 - **Test Sound**: Built-in audio verification system
 - **Theme Support**: Automatic dark/light theme detection
+- **🔄 Background Processing**: ⭐ **NEW** - Continuous boost even when app is closed
 
 ## 🏗️ Architecture
 
@@ -36,6 +38,8 @@ VolumeBooster is a React Native application that provides advanced audio enhance
 │ • User Controls │    │ • Event Emitter  │    │ • Audio APIs    │
 │ • State Mgmt    │    │ • Type Safety    │    │ • LoudnessEnh.  │
 │ • Theme System  │    │ • Event Handling │    │ • Session Mgmt  │
+│ • Background UI │    │ • Service Control │    │ • VolumeBooster │
+│   Controls      │    │   Methods         │    │   Service.kt    │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
 ```
 
@@ -87,6 +91,91 @@ The app implements continuous background monitoring for:
 - **Purpose**: Track system volume changes
 - **Event**: `volumeChanged`
 
+## 🔄 Background Processing ⭐ **NEW**
+
+### Background Service Architecture
+VolumeBooster now includes a comprehensive background processing system that allows audio boost to continue working even when the app is closed or backgrounded.
+
+### Background Service Components
+
+#### **VolumeBoosterService.kt**
+- **Type**: Android Foreground Service
+- **Purpose**: Maintains audio boost functionality in background
+- **Features**:
+  - Persistent notification with boost level display
+  - Independent LoudnessEnhancer instance
+  - Service binding for React Native communication
+  - Automatic cleanup on service termination
+
+#### **Service Lifecycle Management**
+```
+Background Mode Toggle ON
+    ↓
+Start Foreground Service
+    ↓
+Bind Service to React Native Module
+    ↓
+Apply Current Boost Settings
+    ↓
+Show Persistent Notification
+    ↓
+Monitor Service Health (Every 2 seconds)
+```
+
+#### **Background Service Features**
+- **Continuous Boost**: Audio enhancement works even when app is closed
+- **Persistent Notification**: Shows current boost level and mode
+- **Service Health Monitoring**: Automatic status checking every 2 seconds
+- **Battery Optimization**: Efficient background operation
+- **Instant Control**: Seamless toggle without popup interruptions
+
+### Background Service API
+
+#### **Service Control Methods**
+```typescript
+// Enable/disable background mode
+await VolumeBoosterModule.setBackgroundMode(enabled: boolean): Promise<boolean>
+
+// Check if background mode is enabled
+await VolumeBoosterModule.isBackgroundModeEnabled(): Promise<boolean>
+
+// Check if background service is running
+await VolumeBoosterModule.isBackgroundServiceRunning(): Promise<boolean>
+
+// Get current boost level from background service
+await VolumeBoosterModule.getBackgroundBoostLevel(): Promise<number>
+
+// Check if boost is active in background service
+await VolumeBoosterModule.isBackgroundBoostActive(): Promise<boolean>
+```
+
+#### **Background Service Permissions**
+Required Android permissions for background operation:
+```xml
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+<uses-permission android:name="android.permission.WAKE_LOCK" />
+```
+
+#### **Service Configuration**
+```xml
+<service
+  android:name=".VolumeBoosterService"
+  android:enabled="true"
+  android:exported="false"
+  android:foregroundServiceType="mediaPlayback" />
+```
+
+### Background Processing Flow
+1. **User Enables Background Mode**: Toggle switch in UI
+2. **Service Starts**: VolumeBoosterService starts as foreground service
+3. **Service Binds**: React Native module binds to service
+4. **Boost Applied**: Current boost settings applied to service
+5. **Notification Shows**: Persistent notification displays boost status
+6. **Continuous Operation**: Boost continues even when app is closed
+7. **Health Monitoring**: Service status checked every 2 seconds
+8. **User Disables**: Service stops and notification disappears
+
 ## 📁 File Structure
 
 ### React Native Layer
@@ -102,7 +191,8 @@ src/
 ### Android Native Layer
 ```
 android/app/src/main/java/com/volumebooster/
-├── VolumeBoosterModule.kt     # Core audio processing (610+ lines)
+├── VolumeBoosterModule.kt     # Core audio processing (784+ lines)
+├── VolumeBoosterService.kt   # Background foreground service (314+ lines) ⭐ NEW
 ├── VolumeBoosterPackage.kt    # Module registration
 ├── MainActivity.kt           # Android activity
 └── MainApplication.kt        # Application class
@@ -156,6 +246,38 @@ await VolumeBoosterModule.playTestSound();
 Gets information about the currently active audio device.
 ```typescript
 const deviceInfo = await VolumeBoosterModule.getAudioDeviceInfo();
+```
+
+### Background Service Methods ⭐ **NEW**
+
+#### `setBackgroundMode(enabled: boolean): Promise<boolean>`
+Enables or disables background mode for continuous audio boost.
+```typescript
+const result = await VolumeBoosterModule.setBackgroundMode(true); // Enable background mode
+```
+
+#### `isBackgroundModeEnabled(): Promise<boolean>`
+Checks if background mode is currently enabled.
+```typescript
+const isEnabled = await VolumeBoosterModule.isBackgroundModeEnabled();
+```
+
+#### `isBackgroundServiceRunning(): Promise<boolean>`
+Checks if the background service is currently running.
+```typescript
+const isRunning = await VolumeBoosterModule.isBackgroundServiceRunning();
+```
+
+#### `getBackgroundBoostLevel(): Promise<number>`
+Gets the current boost level from the background service.
+```typescript
+const boostLevel = await VolumeBoosterModule.getBackgroundBoostLevel();
+```
+
+#### `isBackgroundBoostActive(): Promise<boolean>`
+Checks if boost is currently active in the background service.
+```typescript
+const isActive = await VolumeBoosterModule.isBackgroundBoostActive();
 ```
 
 ### Event Listeners
@@ -229,8 +351,9 @@ npm test           # Run tests
 #### Adding New Features
 1. **UI Changes**: Modify `src/components/VolumeBooster.tsx`
 2. **Native Methods**: Add to `VolumeBoosterModule.kt`
-3. **TypeScript Interface**: Update `VolumeBoosterModule.ts`
-4. **Documentation**: Update this file and README.md
+3. **Background Service**: Add to `VolumeBoosterService.kt` ⭐ **NEW**
+4. **TypeScript Interface**: Update `VolumeBoosterModule.ts`
+5. **Documentation**: Update this file and README.md
 
 #### Boost Level Customization
 To modify boost levels, update these values:
@@ -256,6 +379,10 @@ maximumValue={200} // 200 = current maximum
 4. **Device Monitoring**: Connect/disconnect audio devices
 5. **Safety Warnings**: Test high boost level warnings
 6. **Theme Switching**: Test dark/light theme changes
+7. **Background Mode**: ⭐ **NEW** - Test background service functionality
+8. **Service Status**: ⭐ **NEW** - Verify service health monitoring
+9. **Notification Display**: ⭐ **NEW** - Check persistent notification
+10. **App Lifecycle**: ⭐ **NEW** - Test boost continuity when app is closed
 
 #### Automated Testing
 ```bash
@@ -308,6 +435,7 @@ Copy these files to your Android project:
 ```
 android/app/src/main/java/com/volumebooster/
 ├── VolumeBoosterModule.kt         # Core audio processing
+├── VolumeBoosterService.kt       # Background foreground service ⭐ NEW
 ├── VolumeBoosterPackage.kt       # Module registration
 └── MainApplication.kt            # Updated with package registration
 ```
@@ -327,6 +455,7 @@ cp src/modules/VolumeBoosterModule.ts your-project/src/modules/
 ```bash
 # Copy native modules
 cp android/app/src/main/java/com/volumebooster/VolumeBoosterModule.kt your-project/android/app/src/main/java/com/volumebooster/
+cp android/app/src/main/java/com/volumebooster/VolumeBoosterService.kt your-project/android/app/src/main/java/com/volumebooster/ ⭐ NEW
 cp android/app/src/main/java/com/volumebooster/VolumeBoosterPackage.kt your-project/android/app/src/main/java/com/volumebooster/
 ```
 
@@ -348,7 +477,34 @@ class MainApplication : Application(), ReactApplication {
 }
 ```
 
-#### **Step 4: Update Package Names**
+#### **Step 4: Update Android Manifest** ⭐ **NEW**
+Add required permissions and service declaration to your `AndroidManifest.xml`:
+
+```xml
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Existing permissions -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    
+    <!-- Background service permissions -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <application>
+        <!-- Existing components -->
+        
+        <!-- VolumeBoosterService for background audio boost -->
+        <service
+            android:name=".VolumeBoosterService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+    </application>
+</manifest>
+```
+
+#### **Step 5: Update Package Names**
 Update the package name in the copied Kotlin files to match your app:
 ```kotlin
 // Change from:
@@ -358,7 +514,7 @@ package com.volumebooster
 package com.yourapp.package
 ```
 
-#### **Step 5: Add to Your App**
+#### **Step 6: Add to Your App**
 Import and use the component in your app:
 
 ```tsx
@@ -517,12 +673,33 @@ Add these permissions to your `android/app/src/main/AndroidManifest.xml`:
    - Ensure `useColorScheme` is imported
    - Check if system theme detection is working
 
+5. **Background service not starting** ⭐ **NEW**
+   - Verify foreground service permissions in `AndroidManifest.xml`
+   - Check if `VolumeBoosterService` is properly declared
+   - Ensure `FOREGROUND_SERVICE_MEDIA_PLAYBACK` permission is added
+
+6. **Background boost not working** ⭐ **NEW**
+   - Check if background mode is enabled in UI
+   - Verify service status in notification bar
+   - Check service health monitoring logs
+   - Ensure boost level is set before enabling background mode
+
 #### **Debug Information**
 Enable debug logging in `VolumeBoosterModule.kt`:
 
 ```kotlin
 Log.d("VolumeBooster", "Boost level: $boostLevel")
 Log.d("VolumeBooster", "Audio session: $audioSessionID")
+Log.d("VolumeBooster", "Background mode: $isBackgroundModeEnabled") ⭐ NEW
+Log.d("VolumeBooster", "Service running: $isServiceBound") ⭐ NEW
+```
+
+Enable debug logging in `VolumeBoosterService.kt`:
+
+```kotlin
+Log.d("VolumeBoosterService", "Service started with boost: $currentBoostLevel")
+Log.d("VolumeBoosterService", "App-only mode: $isAppOnlyBoost")
+Log.d("VolumeBoosterService", "Boost enabled: $isBoostEnabled")
 ```
 
 ### 📚 Complete File List
@@ -535,8 +712,10 @@ Here's exactly what you need to copy for full integration:
 ├── src/modules/VolumeBoosterModule.ts        # TypeScript interface
 ├── android/app/src/main/java/com/volumebooster/
 │   ├── VolumeBoosterModule.kt               # Core audio logic
+│   ├── VolumeBoosterService.kt             # Background service ⭐ NEW
 │   └── VolumeBoosterPackage.kt              # Module registration
-└── Update MainApplication.kt                # Add package registration
+├── Update MainApplication.kt                # Add package registration
+└── Update AndroidManifest.xml               # Add permissions & service ⭐ NEW
 
 📦 Dependencies to Install:
 ├── @react-native-community/slider
