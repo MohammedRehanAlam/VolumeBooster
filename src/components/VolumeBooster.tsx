@@ -161,7 +161,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
   const [gradualBoost, setGradualBoost] = useState(false);
   
   /** Whether boost applies to app-only or device-wide audio */
-  const [appOnlyBoost, setAppOnlyBoost] = useState(false);
+  // const [appOnlyBoost, setAppOnlyBoost] = useState(false); // TODO: Commented out for future implementation
   
   /** Whether boost functionality is enabled or disabled */
   const [boostEnabled, setBoostEnabled] = useState(false);
@@ -173,19 +173,22 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
   const [backgroundServiceRunning, setBackgroundServiceRunning] = useState(false);
   
   /** Whether auto-volume mode is enabled (sets device to 100% when app is active) */
-  const [autoVolumeEnabled, setAutoVolumeEnabled] = useState(false);
+  // const [autoVolumeEnabled, setAutoVolumeEnabled] = useState(false); // TODO: Commented out for future implementation
   
   /** Backup of original device volume before auto-volume was applied */
-  const [originalVolume, setOriginalVolume] = useState<number | null>(null);
+  // const [originalVolume, setOriginalVolume] = useState<number | null>(null); // TODO: Commented out for future implementation
   
   /** Flag to track if we're currently in audio playback mode */
-  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  // const [isAudioPlaying, setIsAudioPlaying] = useState(false); // TODO: Commented out for future implementation
   
   /** Current audio device information for display */
   const [deviceInfo, setDeviceInfo] = useState<AudioDeviceInfo | null>(null);
   
   /** Whether the native audio module has been initialized */
   const [isInitialized, setIsInitialized] = useState(false);
+  
+  /** Whether device info is expanded or collapsed */
+  const [isDeviceInfoExpanded, setIsDeviceInfoExpanded] = useState(false);
   
   /** Reference to track device changes and prevent unnecessary updates */
   const deviceInfoRef = useRef<AudioDeviceInfo | null>(null);
@@ -232,12 +235,12 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
       case 'gradualBoost':
         setGradualBoost(event.newValue);
         break;
-      case 'appOnlyBoost':
-        setAppOnlyBoost(event.newValue);
-        break;
-      case 'autoVolumeEnabled':
-        setAutoVolumeEnabled(event.newValue);
-        break;
+      // case 'appOnlyBoost': // TODO: Commented out for future implementation
+      //   setAppOnlyBoost(event.newValue);
+      //   break;
+      // case 'autoVolumeEnabled': // TODO: Commented out for future implementation
+      //   setAutoVolumeEnabled(event.newValue);
+      //   break;
     }
   }, []);
 
@@ -275,9 +278,9 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
       setInitializationProgress(40);
       setBoost(savedSettings.boost);
       setGradualBoost(savedSettings.gradualBoost);
-      setAppOnlyBoost(savedSettings.appOnlyBoost);
+      // setAppOnlyBoost(savedSettings.appOnlyBoost); // TODO: Commented out for future implementation
       setBoostEnabled(savedSettings.boostEnabled);
-      setAutoVolumeEnabled(savedSettings.autoVolumeEnabled || false);
+      // setAutoVolumeEnabled(savedSettings.autoVolumeEnabled || false); // TODO: Commented out for future implementation
       settingsManagerInstance.addChangeListener(handleSettingsChange);
       
       if (Platform.OS === 'android') {
@@ -297,12 +300,12 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
         ]);
         
         // Handle volume and device info
-        if (savedSettings.autoVolumeEnabled) {
-          setOriginalVolume(currentDeviceVolume);
+        // if (savedSettings.autoVolumeEnabled) { // TODO: Commented out for future implementation
+        //   setOriginalVolume(currentDeviceVolume);
+        //   setVolume(currentDeviceVolume);
+        // } else {
           setVolume(currentDeviceVolume);
-        } else {
-          setVolume(currentDeviceVolume);
-        }
+        // }
         
         if (audioDeviceInfo) {
           setDeviceInfo(audioDeviceInfo);
@@ -316,7 +319,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
         // Apply settings in parallel
         await Promise.all([
           VolumeBoosterModule.setBoostEnabled(savedSettings.boostEnabled),
-          VolumeBoosterModule.setAppOnlyBoost(savedSettings.appOnlyBoost),
+          // VolumeBoosterModule.setAppOnlyBoost(savedSettings.appOnlyBoost), // TODO: Commented out for future implementation
           savedSettings.boostEnabled ? VolumeBoosterModule.setBoost(savedSettings.boost) : Promise.resolve()
         ]);
         
@@ -360,14 +363,15 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
    * This ensures the backup always reflects the user's preferred volume level
    * when auto-volume is enabled. Does not update during audio playback.
    */
-  const updateOriginalVolumeBackup = useCallback((newVolume: number) => {
-    if (autoVolumeEnabled && newVolume !== 100 && !isAudioPlaying) {
-      console.log('[VolumeBooster] Updating original volume backup from', originalVolume, 'to', newVolume);
-      setOriginalVolume(newVolume);
-    } else if (isAudioPlaying) {
-      console.log('[VolumeBooster] Skipping backup update during audio playback');
-    }
-  }, [autoVolumeEnabled, isAudioPlaying, originalVolume]);
+  // TODO: Commented out for future implementation
+  // const updateOriginalVolumeBackup = useCallback((newVolume: number) => {
+  //   if (autoVolumeEnabled && newVolume !== 100 && !isAudioPlaying) {
+  //     console.log('[VolumeBooster] Updating original volume backup from', originalVolume, 'to', newVolume);
+  //     setOriginalVolume(newVolume);
+  //   } else if (isAudioPlaying) {
+  //     console.log('[VolumeBooster] Skipping backup update during audio playback');
+  //   }
+  // }, [autoVolumeEnabled, isAudioPlaying, originalVolume]);
 
   // ============================================================================
   // COMPONENT LIFECYCLE - Initialization and Event Listeners
@@ -409,7 +413,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
         setVolume(newVolume);
         
         // Update original volume backup if auto-volume is enabled and volume is not 100%
-        updateOriginalVolumeBackup(newVolume);
+        // updateOriginalVolumeBackup(newVolume); // TODO: Commented out for future implementation
         
         // Save the new volume to storage
         const settingsManagerInstance = SettingsManager.getInstance();
@@ -426,24 +430,25 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
       VolumeBoosterModule.stopVolumeMonitoring();
       
       // Restore original volume if auto-volume was enabled and volume was changed
-      if (autoVolumeEnabled && originalVolume !== null && Platform.OS === 'android') {
-        console.log('[VolumeBooster] App closing - checking if volume needs restoration');
-        VolumeBoosterModule.getVolume().then(currentVolume => {
-          if (currentVolume === 100) {
-            console.log('[VolumeBooster] Restoring original volume:', originalVolume);
-            VolumeBoosterModule.setVolume(originalVolume).catch(error => {
-              console.error('[VolumeBooster] Failed to restore volume on app close:', error);
-            });
-          }
-        }).catch(error => {
-          console.error('[VolumeBooster] Failed to check volume on app close:', error);
-        });
-      }
+      // TODO: Commented out for future implementation
+      // if (autoVolumeEnabled && originalVolume !== null && Platform.OS === 'android') {
+      //   console.log('[VolumeBooster] App closing - checking if volume needs restoration');
+      //   VolumeBoosterModule.getVolume().then(currentVolume => {
+      //     if (currentVolume === 100) {
+      //       console.log('[VolumeBooster] Restoring original volume:', originalVolume);
+      //       VolumeBoosterModule.setVolume(originalVolume).catch(error => {
+      //         console.error('[VolumeBooster] Failed to restore volume on app close:', error);
+      //       });
+      //     }
+      //   }).catch(error => {
+      //     console.error('[VolumeBooster] Failed to check volume on app close:', error);
+      //   });
+      // }
     };
-  }, [initializeApp, handleSettingsChange, autoVolumeEnabled, originalVolume, updateOriginalVolumeBackup]);
+  }, [initializeApp, handleSettingsChange]); // TODO: Removed auto-volume dependencies for future implementation
 
   // ============================================================================
-  // AUTO-VOLUME HANDLERS
+  // AUTO-VOLUME HANDLERS - TODO: Commented out for future implementation
   // ============================================================================
   
   /**
@@ -452,49 +457,49 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
    * When enabled: backs up current volume for audio-aware volume management
    * When disabled: restores original volume if it was changed
    */
-  const handleAutoVolumeToggle = async (enabled: boolean) => {
-    if (!isInitialized || Platform.OS !== 'android') {
-      Alert.alert('Error', 'Audio system not initialized');
-      return;
-    }
+  // const handleAutoVolumeToggle = async (enabled: boolean) => {
+  //   if (!isInitialized || Platform.OS !== 'android') {
+  //     Alert.alert('Error', 'Audio system not initialized');
+  //     return;
+  //   }
 
-    try {
-      console.log('[VolumeBooster] Setting auto-volume to:', enabled);
-      
-      if (enabled) {
-        // Enable auto-volume: backup current volume (don't change yet)
-        const currentVolume = await VolumeBoosterModule.getVolume();
-        setOriginalVolume(currentVolume);
-        
-        console.log('[VolumeBooster] Auto-volume enabled - original volume backed up:', currentVolume, '%');
-        console.log('[VolumeBooster] Volume will be set to 100% only when app plays audio');
-      } else {
-        // Disable auto-volume: restore original volume if it was changed
-        if (originalVolume !== null) {
-          const currentVolume = await VolumeBoosterModule.getVolume();
-          if (currentVolume === 100) {
-            // Only restore if volume is currently at 100% (was changed by auto-volume)
-            console.log('[VolumeBooster] Restoring original volume:', originalVolume);
-            await VolumeBoosterModule.setVolume(originalVolume);
-            setVolume(originalVolume);
-          }
-          setOriginalVolume(null);
-          
-          console.log('[VolumeBooster] Auto-volume disabled - volume restored if needed');
-        }
-      }
-      
-      setAutoVolumeEnabled(enabled);
-      
-      // Save setting using centralized storage
-      const settingsManagerInstance = SettingsManager.getInstance();
-      await settingsManagerInstance.setSetting('autoVolumeEnabled', enabled);
-      
-    } catch (error) {
-      console.error('[VolumeBooster] Failed to toggle auto-volume:', error);
-      Alert.alert('Error', 'Failed to toggle auto-volume');
-    }
-  };
+  //   try {
+  //     console.log('[VolumeBooster] Setting auto-volume to:', enabled);
+  //     
+  //     if (enabled) {
+  //       // Enable auto-volume: backup current volume (don't change yet)
+  //       const currentVolume = await VolumeBoosterModule.getVolume();
+  //       setOriginalVolume(currentVolume);
+  //       
+  //       console.log('[VolumeBooster] Auto-volume enabled - original volume backed up:', currentVolume, '%');
+  //       console.log('[VolumeBooster] Volume will be set to 100% only when app plays audio');
+  //     } else {
+  //       // Disable auto-volume: restore original volume if it was changed
+  //       if (originalVolume !== null) {
+  //         const currentVolume = await VolumeBoosterModule.getVolume();
+  //         if (currentVolume === 100) {
+  //           // Only restore if volume is currently at 100% (was changed by auto-volume)
+  //           console.log('[VolumeBooster] Restoring original volume:', originalVolume);
+  //           await VolumeBoosterModule.setVolume(originalVolume);
+  //           setVolume(originalVolume);
+  //         }
+  //         setOriginalVolume(null);
+  //         
+  //         console.log('[VolumeBooster] Auto-volume disabled - volume restored if needed');
+  //       }
+  //     }
+  //     
+  //     setAutoVolumeEnabled(enabled);
+  //     
+  //     // Save setting using centralized storage
+  //     const settingsManagerInstance = SettingsManager.getInstance();
+  //     await settingsManagerInstance.setSetting('autoVolumeEnabled', enabled);
+  //     
+  //   } catch (error) {
+  //     console.error('[VolumeBooster] Failed to toggle auto-volume:', error);
+  //     Alert.alert('Error', 'Failed to toggle auto-volume');
+  //   }
+  // };
 
   /**
    * Sets volume to 100% when app starts playing audio
@@ -502,20 +507,21 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
    * This function is called when the app begins audio playback
    * It only changes volume if auto-volume is enabled
    */
-  const handleAudioPlaybackStart = async () => {
-    if (!autoVolumeEnabled || !isInitialized || Platform.OS !== 'android') {
-      return;
-    }
+  // TODO: Commented out for future implementation
+  // const handleAudioPlaybackStart = async () => {
+  //   if (!autoVolumeEnabled || !isInitialized || Platform.OS !== 'android') {
+  //     return;
+  //   }
 
-    try {
-      console.log('[VolumeBooster] Audio playback started - setting volume to 100%');
-      setIsAudioPlaying(true); // Set flag to prevent backup updates
-      await VolumeBoosterModule.setVolume(100);
-      setVolume(100);
-    } catch (error) {
-      console.error('[VolumeBooster] Failed to set volume for audio playback:', error);
-    }
-  };
+  //   try {
+  //     console.log('[VolumeBooster] Audio playback started - setting volume to 100%');
+  //     setIsAudioPlaying(true); // Set flag to prevent backup updates
+  //     await VolumeBoosterModule.setVolume(100);
+  //     setVolume(100);
+  //   } catch (error) {
+  //     console.error('[VolumeBooster] Failed to set volume for audio playback:', error);
+  //   }
+  // };
 
   /**
    * Restores original volume when app finishes playing audio
@@ -523,25 +529,26 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
    * This function is called when the app stops audio playback
    * It restores the original volume if auto-volume is enabled
    */
-  const handleAudioPlaybackEnd = async () => {
-    if (!autoVolumeEnabled || !isInitialized || Platform.OS !== 'android' || originalVolume === null) {
-      return;
-    }
+  // TODO: Commented out for future implementation
+  // const handleAudioPlaybackEnd = async () => {
+  //   if (!autoVolumeEnabled || !isInitialized || Platform.OS !== 'android' || originalVolume === null) {
+  //     return;
+  //   }
 
-    try {
-      console.log('[VolumeBooster] Audio playback ended - restoring original volume:', originalVolume, '%');
-      await VolumeBoosterModule.setVolume(originalVolume);
-      setVolume(originalVolume);
-      
-      // Small delay to ensure volume restoration completes before allowing backup updates
-      setTimeout(() => {
-        setIsAudioPlaying(false); // Clear flag to allow backup updates again
-      }, 100);
-    } catch (error) {
-      console.error('[VolumeBooster] Failed to restore volume after audio playback:', error);
-      setIsAudioPlaying(false); // Clear flag even on error
-    }
-  };
+  //   try {
+  //     console.log('[VolumeBooster] Audio playback ended - restoring original volume:', originalVolume, '%');
+  //     await VolumeBoosterModule.setVolume(originalVolume);
+  //     setVolume(originalVolume);
+  //     
+  //     // Small delay to ensure volume restoration completes before allowing backup updates
+  //     setTimeout(() => {
+  //       setIsAudioPlaying(false); // Clear flag to allow backup updates again
+  //     }, 100);
+  //   } catch (error) {
+  //     console.error('[VolumeBooster] Failed to restore volume after audio playback:', error);
+  //     setIsAudioPlaying(false); // Clear flag even on error
+  //   }
+  // };
 
   /**
    * Formats volume for display with one decimal place
@@ -579,7 +586,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
     }
     
     // Update original volume backup if auto-volume is enabled and volume is not 100%
-    updateOriginalVolumeBackup(value);
+    // updateOriginalVolumeBackup(value); // TODO: Commented out for future implementation
     
     // Save setting using centralized storage
     console.log('[VolumeBooster] Saving volume setting to centralized storage...');
@@ -695,29 +702,30 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
    * 
    * @param value true for app-only boost, false for device-wide boost
    */
-  const handleAppOnlyBoostToggle = async (value: boolean) => {
-    console.log('[VolumeBooster] App-only boost toggle changed to:', value);
-    setAppOnlyBoost(value);
-    
-    if (isInitialized && Platform.OS === 'android') {
-      try {
-        await VolumeBoosterModule.setAppOnlyBoost(value);
-        // Reapply current boost with new mode (only if boost is enabled)
-        if (boostEnabled) {
-          console.log('[VolumeBooster] Reapplying boost with new mode:', boost);
-          await VolumeBoosterModule.setBoost(boost);
-        }
-      } catch (error) {
-        console.error('[VolumeBooster] Failed to set app-only boost mode:', error);
-        Alert.alert('Error', 'Failed to change boost mode');
-      }
-    }
-    
-    // Save setting using centralized storage
-    console.log('[VolumeBooster] Saving app-only boost setting to centralized storage...');
-    const settingsManagerInstance = SettingsManager.getInstance();
-    await settingsManagerInstance.setSetting('appOnlyBoost', value);
-  };
+  // TODO: Commented out for future implementation
+  // const handleAppOnlyBoostToggle = async (value: boolean) => {
+  //   console.log('[VolumeBooster] App-only boost toggle changed to:', value);
+  //   setAppOnlyBoost(value);
+  //   
+  //   if (isInitialized && Platform.OS === 'android') {
+  //     try {
+  //       await VolumeBoosterModule.setAppOnlyBoost(value);
+  //       // Reapply current boost with new mode (only if boost is enabled)
+  //       if (boostEnabled) {
+  //         console.log('[VolumeBooster] Reapplying boost with new mode:', boost);
+  //         await VolumeBoosterModule.setBoost(boost);
+  //       }
+  //     } catch (error) {
+  //       console.error('[VolumeBooster] Failed to set app-only boost mode:', error);
+  //       Alert.alert('Error', 'Failed to change boost mode');
+  //     }
+  //   }
+  //   
+  //   // Save setting using centralized storage
+  //   console.log('[VolumeBooster] Saving app-only boost setting to centralized storage...');
+  //   const settingsManagerInstance = SettingsManager.getInstance();
+  //   await settingsManagerInstance.setSetting('appOnlyBoost', value);
+  // };
 
   /**
    * Handles test sound playback
@@ -730,29 +738,29 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
    * - App-only vs device-wide modes are functioning
    * - Audio quality is acceptable at current boost levels
    */
-  const handleTestSound = async () => {
-    if (isInitialized && Platform.OS === 'android') {
-      try {
-        // Start audio playback - trigger auto-volume if enabled
-        await handleAudioPlaybackStart();
+  // const handleTestSound = async () => {
+  //   if (isInitialized && Platform.OS === 'android') {
+  //     try {
+  //       // Start audio playback - trigger auto-volume if enabled
+  //       // await handleAudioPlaybackStart(); // TODO: Commented out for future implementation
         
-        // Play the test sound
-        await VolumeBoosterModule.playTestSound();
+  //       // Play the test sound
+  //       await VolumeBoosterModule.playTestSound();
         
-        // Wait for sound to complete (test sound duration is typically 2-3 seconds)
-        setTimeout(async () => {
-          await handleAudioPlaybackEnd();
-        }, 3000); // 3 second delay to allow test sound to complete
+  //       // Wait for sound to complete (test sound duration is typically 2-3 seconds)
+  //       // setTimeout(async () => { // TODO: Commented out for future implementation
+  //       //   await handleAudioPlaybackEnd();
+  //       // }, 3000); // 3 second delay to allow test sound to complete
         
-      } catch (error) {
-        console.error('Failed to play test sound:', error);
-        Alert.alert('Error', 'Failed to play test sound');
+  //     } catch (error) {
+  //       console.error('Failed to play test sound:', error);
+  //       Alert.alert('Error', 'Failed to play test sound');
         
-        // Restore volume if there was an error
-        await handleAudioPlaybackEnd();
-      }
-    }
-  };
+  //       // Restore volume if there was an error
+  //       // await handleAudioPlaybackEnd(); // TODO: Commented out for future implementation
+  //     }
+  //   }
+  // };
 
   // ============================================================================
   // BACKGROUND SERVICE CONTROL FUNCTIONS
@@ -967,43 +975,46 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
    * Displays a modal dialog with app version, platform information,
    * session ID, current settings, and storage status.
    */
-  const showAppInfo = async () => {
-    try {
-      const settingsManagerInstance = SettingsManager.getInstance();
-      const storageStatus = await settingsManagerInstance.getStorageInfo();
-      
-      const info = `VolumeBooster v1.0.1\n\n` +
-        `Platform: ${Platform.OS}\n` +
-        `Session ID: ${Math.random().toString(36).substr(2, 9)}\n\n` +
-        `Current Settings:\n` +
-        `Volume: ${formatVolumeDisplay(volume)}%\n` +
-        `Boost: ${boost}%\n` +
-        `Boost Enabled: ${boostEnabled}\n` +
-        `Gradual: ${gradualBoost}\n` +
-        `App Only: ${appOnlyBoost}\n\n` +
-        `Storage Status:\n` +
-        `Initialized: ${storageStatus?.isInitialized || false}\n` +
-        `Storage Keys: ${storageStatus?.storageInfo?.count || 0}\n\n` +
-        `Warning: Excessive boost may distort audio or harm speakers.`;
-      
-      Alert.alert('App Info', info);
-    } catch (error) {
-      console.error('[VolumeBooster] Failed to get storage info:', error);
-      
-      const basicInfo = `VolumeBooster v1.0.1\n\n` +
-        `Platform: ${Platform.OS}\n` +
-        `Session ID: ${Math.random().toString(36).substr(2, 9)}\n\n` +
-        `Current Settings:\n` +
-        `Volume: ${formatVolumeDisplay(volume)}%\n` +
-        `Boost: ${boost}%\n` +
-        `Boost Enabled: ${boostEnabled}\n` +
-        `Gradual: ${gradualBoost}\n` +
-        `App Only: ${appOnlyBoost}\n\n` +
-        `Warning: Excessive boost may distort audio or harm speakers.`;
-      
-      Alert.alert('App Info', basicInfo);
-    }
-  };
+  // TODO: Commented out - info button is disabled in header
+  // const showAppInfo = async () => {
+  //   try {
+  //     const settingsManagerInstance = SettingsManager.getInstance();
+  //     const storageStatus = await settingsManagerInstance.getStorageInfo();
+  //     
+  //     const info = `VolumeBooster v1.0.1\n\n` +
+  //       `Platform: ${Platform.OS}\n` +
+  //       `Session ID: ${Math.random().toString(36).substr(2, 9)}\n\n` +
+  //       `Current Settings:\n` +
+  //       `Volume: ${formatVolumeDisplay(volume)}%\n` +
+  //       `Boost: ${boost}%\n` +
+  //       `Boost Enabled: ${boostEnabled}\n` +
+  //       `Gradual: ${gradualBoost}\n` +
+  //       // `App Only: ${appOnlyBoost}\n` + // TODO: Commented out for future implementation
+  //       `\n` +
+  //       `Storage Status:\n` +
+  //       `Initialized: ${storageStatus?.isInitialized || false}\n` +
+  //       `Storage Keys: ${storageStatus?.storageInfo?.count || 0}\n\n` +
+  //       `Warning: Excessive boost may distort audio or harm speakers.`;
+  //     
+  //     Alert.alert('App Info', info);
+  //   } catch (error) {
+  //     console.error('[VolumeBooster] Failed to get storage info:', error);
+  //     
+  //     const basicInfo = `VolumeBooster v1.0.1\n\n` +
+  //       `Platform: ${Platform.OS}\n` +
+  //       `Session ID: ${Math.random().toString(36).substr(2, 9)}\n\n` +
+  //       `Current Settings:\n` +
+  //       `Volume: ${formatVolumeDisplay(volume)}%\n` +
+  //       `Boost: ${boost}%\n` +
+  //       `Boost Enabled: ${boostEnabled}\n` +
+  //       `Gradual: ${gradualBoost}\n` +
+  //       // `App Only: ${appOnlyBoost}\n` + // TODO: Commented out for future implementation
+  //       `\n` +
+  //       `Warning: Excessive boost may distort audio or harm speakers.`;
+  //     
+  //     Alert.alert('App Info', basicInfo);
+  //   }
+  // };
 
   /**
    * Clears all saved settings using centralized storage
@@ -1011,54 +1022,61 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
    * This function removes all saved settings from storage
    * and resets the app to default values.
    */
-  const clearAllSettings = async () => {
-    try {
-      console.log('[VolumeBooster] Clearing all settings using centralized storage...');
+  // const clearAllSettings = async () => {
+  //   try {
+  //     console.log('[VolumeBooster] Clearing all settings using centralized storage...');
       
-      const settingsManagerInstance = SettingsManager.getInstance();
-      const success = await settingsManagerInstance.clearSettings();
+  //     const settingsManagerInstance = SettingsManager.getInstance();
+  //     const success = await settingsManagerInstance.clearSettings();
       
-      if (success) {
-        // Reset to default values
-        // setVolume(100);
-        // Get current device volume to preserve it
-        const currentDeviceVolume = await VolumeBoosterModule.getVolume();
+  //     if (success) {
+  //       // Reset to default values
+  //       // setVolume(100);
+  //       // Get current device volume to preserve it
+  //       const currentDeviceVolume = await VolumeBoosterModule.getVolume();
         
-        // Reset to default values but preserve current device volume
-        setVolume(currentDeviceVolume); // Keep current device volume
-        setBoost(0);
-        setGradualBoost(false);
-        setAppOnlyBoost(false);
-        setBoostEnabled(false);
-        setAutoVolumeEnabled(false);
+  //       // Reset to default values but preserve current device volume
+  //       setVolume(currentDeviceVolume); // Keep current device volume
+  //       setBoost(0);
+  //       setGradualBoost(false);
+  //       // setAppOnlyBoost(false); // TODO: Commented out for future implementation
+  //       setBoostEnabled(false);
+  //       // setAutoVolumeEnabled(false); // TODO: Commented out for future implementation
         
-        // Clear auto-volume backup since it's disabled
-        setOriginalVolume(null);
+  //       // Clear auto-volume backup since it's disabled
+  //       // setOriginalVolume(null); // TODO: Commented out for future implementation
         
-        console.log('[VolumeBooster] Settings reset - volume preserved at:', currentDeviceVolume, '%');
-        Alert.alert('Settings Cleared', 'All settings have been reset to defaults. Device volume preserved.');
-      } else {
-        Alert.alert('Error', 'Failed to clear settings');
-      }
-    } catch (error) {
-      console.error('[VolumeBooster] Failed to clear settings:', error);
-      Alert.alert('Error', 'Failed to clear settings');
-    }
-  };
+  //       console.log('[VolumeBooster] Settings reset - volume preserved at:', currentDeviceVolume, '%');
+  //       Alert.alert('Settings Cleared', 'All settings have been reset to defaults. Device volume preserved.');
+  //     } else {
+  //       Alert.alert('Error', 'Failed to clear settings');
+  //     }
+  //   } catch (error) {
+  //     console.error('[VolumeBooster] Failed to clear settings:', error);
+  //     Alert.alert('Error', 'Failed to clear settings');
+  //   }
+  // };
+
+  // TODO: Commented out - replaced with collapsible device info display
+  // const formatDeviceInfo = (device: AudioDeviceInfo) => {
+  //   const sampleRates = device.sampleRates || '';
+  //   return `Device Name:\t\t\t\t${device.name}\n` +
+  //     `Device Type:\t\t\t\t${device.type} (${device.typeId})\n` +
+  //     `Device ID:\t\t\t\t\t\t${device.id}\n\n` +
+  //     `Channels:\t\t\t\t\t\t\t\t${device.channels || 'N/A'}\n` +
+  //     `Encodings:\t\t\t\t\t\t${device.encodings || 'N/A'}\n\n` +
+  //     `Sample Rates: ${sampleRates ? '\n' + sampleRates + 'Hz' : '\tN/A'}`;
+  // };
 
   /**
-   * Formats audio device information for display
-   * 
-   * Converts the AudioDeviceInfo object into a formatted string for display
-   * in the UI. Includes device name, type, ID, channels, encodings, and sample rates.
+   * Formats detailed device information for expanded view
    * 
    * @param device AudioDeviceInfo object from native module
-   * @returns Formatted string with device information
+   * @returns Formatted string with detailed device information
    */
-  const formatDeviceInfo = (device: AudioDeviceInfo) => {
+  const formatDetailedDeviceInfo = (device: AudioDeviceInfo) => {
     const sampleRates = device.sampleRates || '';
-    return `Device Name:\t\t\t\t${device.name}\n` +
-      `Device Type:\t\t\t\t${device.type} (${device.typeId})\n` +
+    return `Device Type:\t\t\t\t${device.type} (${device.typeId})\n` +
       `Device ID:\t\t\t\t\t\t${device.id}\n\n` +
       `Channels:\t\t\t\t\t\t\t\t${device.channels || 'N/A'}\n` +
       `Encodings:\t\t\t\t\t\t${device.encodings || 'N/A'}\n\n` +
@@ -1148,16 +1166,46 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
       {/* App Header with Title and Info Button */}
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <Text style={[styles.title, { color: theme.text }]}>Volume Booster</Text>
-        <Text style={[styles.infoIcon, { color: theme.primary }]} onPress={showAppInfo}>ⓘ</Text>
+        {/* <Text style={[styles.infoIcon, { color: theme.primary }]} onPress={showAppInfo}>ⓘ</Text> */}
       </View>
 
       {/* Scrollable Content Area */}
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Device Info */}
+        {/* Device Info - Collapsible */}
         <View style={styles.deviceInfoContainer}>
-          <Text style={[styles.deviceInfoText, { color: theme.textMuted }]}>
+          {/* <Text style={[styles.deviceInfoText, { color: theme.textMuted }]}>
             {deviceInfo ? formatDeviceInfo(deviceInfo) : 'No Active Output Device Detected'}
-          </Text>
+          </Text> */}
+          {deviceInfo ? (
+            <View>
+              {/* Device Name with Expand/Collapse Button */}
+              <View style={styles.deviceInfoHeader}>
+                <Text style={[styles.deviceNameText, { color: theme.text }]}>
+                  {deviceInfo.name}
+                </Text>
+                <TouchableOpacity
+                  style={styles.expandButton}
+                  onPress={() => setIsDeviceInfoExpanded(!isDeviceInfoExpanded)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.expandButtonText, { color: theme.primary }]}>
+                    {isDeviceInfoExpanded ? '▼' : '▶'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              
+              {/* Detailed Device Information - Collapsible */}
+              {isDeviceInfoExpanded && (
+                <Text style={[styles.deviceInfoText, { color: theme.textMuted }]}>
+                  {formatDetailedDeviceInfo(deviceInfo)}
+                </Text>
+              )}
+            </View>
+          ) : (
+            <Text style={[styles.deviceInfoText, { color: theme.textMuted }]}>
+              No Active Output Device Detected
+            </Text>
+          )}
         </View>
 
         {/* Volume Controls */}
@@ -1266,8 +1314,8 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
           )}
         </View>
 
-        {/* App-Only Boost Toggle */}
-        <View style={styles.controlSection}>
+        {/* App-Only Boost Toggle - TODO: Commented out for future implementation */}
+        {/* <View style={styles.controlSection}>
           <View style={styles.controlHeader}>
             <Text style={[styles.controlLabel, { color: theme.text }]}>Mode:</Text>
             <View style={styles.toggleContainer}>
@@ -1290,7 +1338,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
               : 'Boost applies to all device audio (music, videos, games, etc.)'
             }
           </Text>
-        </View>
+        </View> */}
 
         {/* Background Mode Toggle */}
         <View style={styles.controlSection}>
@@ -1323,8 +1371,8 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
           )}
         </View>
 
-        {/* Auto-Volume Toggle */}
-        <View style={styles.controlSection}>
+        {/* Auto-Volume Toggle - TODO: Commented out for future implementation */}
+        {/* <View style={styles.controlSection}>
           <View style={styles.controlHeader}>
             <Text style={[styles.controlLabel, { color: theme.text }]}>Auto-Volume:</Text>
             <View style={styles.toggleContainer}>
@@ -1351,11 +1399,11 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
               Original Volume: {formatVolumeDisplay(originalVolume)}% (restored after audio playback ends)
             </Text>
           )}
-        </View>
+        </View> */}
 
         {/* Test Sound Button */}
-        <View style={styles.controlSection}>
-          <TouchableOpacity
+        {/* <View style={styles.controlSection}> */}
+          {/* <TouchableOpacity
             style={[styles.testButton, { backgroundColor: theme.primary }]}
             onPress={handleTestSound}
             activeOpacity={0.8}
@@ -1363,31 +1411,32 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
             <Text style={[styles.testButtonText, { color: theme.background }]}>
               🔊 Play Test Sound
             </Text>
-          </TouchableOpacity>
-          <Text style={[styles.testDescription, { color: theme.textMuted }]}>
-            Play a 440Hz tone to test the boost functionality. 
-            {appOnlyBoost ? ' This sound will be boosted if app-only mode is enabled.' : ' This sound will be boosted along with all device audio.'}
-          </Text>
-        </View>
+          </TouchableOpacity> */}
+          {/* <Text style={[styles.testDescription, { color: theme.textMuted }]}> */}
+            {/* Play a 440Hz tone to test the boost functionality.  */}
+            {/* {appOnlyBoost ? ' This sound will be boosted if app-only mode is enabled.' : ' This sound will be boosted along with all device audio.'} TODO: Commented out for future implementation */}
+            {/* This sound will be boosted along with all device audio. */}
+          {/* </Text> */}
+        {/* </View> */}
 
         {/* Reset Section - Always visible */}
-          <View style={styles.controlSection}>
-          <View style={styles.controlHeader}>
-            <Text style={[styles.controlLabel, { color: theme.text }]}>Reset:</Text>
-          </View>
-            <TouchableOpacity
-              style={[styles.testButton, styles.debugButton, { backgroundColor: theme.secondary }]}
-              onPress={clearAllSettings}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.testButtonText, { color: theme.background }]}>
-                🗑️ Reset To Default
-              </Text>
-            </TouchableOpacity>
-            <Text style={[styles.testDescription, { color: theme.textMuted }]}>
-              Clear all saved settings and reset to defaults.
+        {/* <View style={styles.controlSection}>
+        <View style={styles.controlHeader}>
+          <Text style={[styles.controlLabel, { color: theme.text }]}>Reset:</Text>
+        </View>
+          <TouchableOpacity
+            style={[styles.testButton, styles.debugButton, { backgroundColor: theme.secondary }]}
+            onPress={clearAllSettings}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.testButtonText, { color: theme.background }]}>
+              🗑️ Reset To Default
             </Text>
-          </View>
+          </TouchableOpacity>
+          <Text style={[styles.testDescription, { color: theme.textMuted }]}>
+            Clear all saved settings and reset to defaults.
+          </Text>
+        </View> */}
       </ScrollView>
     </View>
   );
@@ -1508,16 +1557,38 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    paddingHorizontal: 24,
+    paddingHorizontal: 12,
   },
   deviceInfoContainer: {
     marginVertical: 24,
     paddingHorizontal: 14,
   },
+  deviceInfoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  deviceNameText: {
+    fontSize: 18,
+    fontFamily: 'monospace',
+    fontWeight: 'bold',
+    flex: 1,
+  },
+  expandButton: {
+    padding: 8,
+    marginLeft: 12,
+  },
+  expandButtonText: {
+    fontSize: 16,
+    fontFamily: 'monospace',
+    fontWeight: 'bold',
+  },
   deviceInfoText: {
     fontSize: 16,
     fontFamily: 'monospace',
     lineHeight: 24,
+    marginTop: 8,
   },
   controlSection: {
     marginBottom: 42,

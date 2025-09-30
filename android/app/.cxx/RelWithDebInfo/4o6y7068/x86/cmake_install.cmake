@@ -49,6 +49,7 @@ if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   include("C:/Users/moham/VolumeBooster/android/app/.cxx/RelWithDebInfo/4o6y7068/x86/rngesturehandler_codegen_autolinked_build/cmake_install.cmake")
   include("C:/Users/moham/VolumeBooster/android/app/.cxx/RelWithDebInfo/4o6y7068/x86/rnreanimated_autolinked_build/cmake_install.cmake")
   include("C:/Users/moham/VolumeBooster/android/app/.cxx/RelWithDebInfo/4o6y7068/x86/safeareacontext_autolinked_build/cmake_install.cmake")
+  include("C:/Users/moham/VolumeBooster/android/app/.cxx/RelWithDebInfo/4o6y7068/x86/RNVectorIconsSpec_autolinked_build/cmake_install.cmake")
   include("C:/Users/moham/VolumeBooster/android/app/.cxx/RelWithDebInfo/4o6y7068/x86/rnworklets_autolinked_build/cmake_install.cmake")
 
 endif()

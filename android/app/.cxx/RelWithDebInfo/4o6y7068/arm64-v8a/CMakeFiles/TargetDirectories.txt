@@ -16,6 +16,9 @@ C:/Users/moham/VolumeBooster/android/app/.cxx/RelWithDebInfo/4o6y7068/arm64-v8a/
 C:/Users/moham/VolumeBooster/android/app/.cxx/RelWithDebInfo/4o6y7068/arm64-v8a/safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir
 C:/Users/moham/VolumeBooster/android/app/.cxx/RelWithDebInfo/4o6y7068/arm64-v8a/safeareacontext_autolinked_build/CMakeFiles/edit_cache.dir
 C:/Users/moham/VolumeBooster/android/app/.cxx/RelWithDebInfo/4o6y7068/arm64-v8a/safeareacontext_autolinked_build/CMakeFiles/rebuild_cache.dir
+C:/Users/moham/VolumeBooster/android/app/.cxx/RelWithDebInfo/4o6y7068/arm64-v8a/RNVectorIconsSpec_autolinked_build/CMakeFiles/react_codegen_RNVectorIconsSpec.dir
+C:/Users/moham/VolumeBooster/android/app/.cxx/RelWithDebInfo/4o6y7068/arm64-v8a/RNVectorIconsSpec_autolinked_build/CMakeFiles/edit_cache.dir
+C:/Users/moham/VolumeBooster/android/app/.cxx/RelWithDebInfo/4o6y7068/arm64-v8a/RNVectorIconsSpec_autolinked_build/CMakeFiles/rebuild_cache.dir
 C:/Users/moham/VolumeBooster/android/app/.cxx/RelWithDebInfo/4o6y7068/arm64-v8a/rnworklets_autolinked_build/CMakeFiles/react_codegen_rnworklets.dir
 C:/Users/moham/VolumeBooster/android/app/.cxx/RelWithDebInfo/4o6y7068/arm64-v8a/rnworklets_autolinked_build/CMakeFiles/edit_cache.dir
 C:/Users/moham/VolumeBooster/android/app/.cxx/RelWithDebInfo/4o6y7068/arm64-v8a/rnworklets_autolinked_build/CMakeFiles/rebuild_cache.dir
