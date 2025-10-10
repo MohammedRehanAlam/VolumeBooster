@@ -123,44 +123,75 @@ temp/
 # ANDROID DEVELOPMENT
 # ============================================================================
 
-# Android build artifacts
+# Android build artifacts (all build output directories)
 android/app/build/
 android/build/
-android/.gradle/
-android/gradle/
-android/gradlew
-android/gradlew.bat
-android/local.properties
-android/*.iml
-android/.idea/
-android/.cxx/
-android/.kotlin/
+android/app/build.gradle.kts
+build/
+*/build/
 
-# Android Studio
-*.iml
-.idea/
+# Gradle
 .gradle/
+android/.gradle/
+android/local.properties
 local.properties
-*.hprof
-*.keystore
-!debug.keystore
 
-# Android NDK
-obj/
+# KEEP gradle wrapper - it's needed for builds!
+# android/gradle/ - DO NOT IGNORE
+# android/gradlew - DO NOT IGNORE
+# android/gradlew.bat - DO NOT IGNORE
 
-# IntelliJ IDEA
+# Android Studio / IntelliJ IDEA
+*.iml
 .idea/
 *.iws
-*.iml
 *.ipr
+android/*.iml
+android/.idea/
+*.hprof
+
+# Android signing keys (EXCEPT debug keystore)
+*.keystore
+*.jks
+!debug.keystore
+!app/debug.keystore
+
+# Android NDK / C++ build artifacts
+android/.cxx/
+android/app/.cxx/
+android/.externalNativeBuild/
+android/app/.externalNativeBuild/
+.cxx/
+obj/
+android/.kotlin/
+
+# Android generated files
+android/app/build/
+android/app/src/main/assets/
+android/captures/
+*.apk
+*.ap_
+*.aab
+*.dex
+*.class
+bin/
+gen/
 out/
+
+# IntelliJ IDEA
+*.ipr
+projectFilesBackup/
 
 # ============================================================================
 # iOS DEVELOPMENT (XCODE)
 # ============================================================================
 
-# Xcode
-build/
+# Xcode build output
+ios/build/
+DerivedData/
+*.xcarchive
+
+# Xcode user-specific files
 *.pbxuser
 !default.pbxuser
 *.mode1v3
@@ -172,17 +203,22 @@ build/
 xcuserdata/
 *.xccheckout
 *.moved-aside
-DerivedData/
 *.hmap
 *.ipa
 *.xcuserstate
+*.xcscmblueprint
 **/.xcode.env.local
 
 # CocoaPods
 ios/Pods/
 ios/Podfile.lock
 ios/*.xcworkspace
+!ios/*.xcodeproj/project.xcworkspace
 ios/*.xcuserdata
+
+# Swift Package Manager
+ios/.swiftpm/
+.build/
 
 # ============================================================================
 # REACT NATIVE SPECIFIC
@@ -190,15 +226,24 @@ ios/*.xcuserdata
 
 # Metro bundler cache
 .metro-health-check*
+.metro/
 
 # Bundle artifacts
 *.jsbundle
+*.bundle
 
 # React Native CLI
 .react-native/
 
+# React Native autolinking generated files
+android/build/generated/autolinking/
+ios/build/generated/
+
 # Flipper
 ios/Flipper/
+
+# React Native codegen
+react-native.config.js
 
 # ============================================================================
 # TESTING & QUALITY ASSURANCE
@@ -238,9 +283,12 @@ coverage/
 # API Keys and secrets
 .env
 .env.*
+!.env.example
 !env.example
 secrets.json
 config/secrets.json
+google-services.json
+GoogleService-Info.plist
 
 # Certificates and keys
 *.p12
@@ -250,11 +298,17 @@ config/secrets.json
 *.crt
 *.key
 *.pem
+*.pfx
+
+# Android signing configs
+signing.properties
+keystore.properties
 
 # Database files
 *.db
 *.sqlite
 *.sqlite3
+*.realm
 
 # ============================================================================
 # BUILD & DEPLOYMENT
@@ -322,6 +376,34 @@ test-sounds/
 # Documentation builds
 docs/_build/
 docs/build/
+
+# ============================================================================
+# ADDITIONAL BUILD ARTIFACTS & CACHE
+# ============================================================================
+
+# Watchman
+.watchmanconfig
+
+# Buck build system
+buck-out/
+.buckconfig.local
+.buckd/
+.buckversion
+
+# Gradle daemon
+.gradle-daemon/
+
+# Android lint
+lint/
+lint-report.xml
+lint-results.xml
+
+# TypeScript compiled output
+*.js.map
+*.d.ts.map
+
+# Source maps
+*.map
 
 # ============================================================================
 # END OF .gitignore
