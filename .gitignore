@@ -177,7 +177,7 @@ android/captures/
 bin/
 gen/
 out/
- 
+
 # IntelliJ IDEA
 *.ipr
 projectFilesBackup/
