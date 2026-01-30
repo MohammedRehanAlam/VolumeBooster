@@ -1,29 +1,3 @@
-/**
- * VolumeBooster - Main UI Component for Audio Enhancement App
- * 
- * This is the primary React Native component that provides the user interface
- * for the VolumeBooster app. It handles all user interactions, displays real-time
- * audio device information, and manages the boost controls.
- * 
- * Key Features:
- * - Volume control slider (0-100%)
- * - Audio boost slider (0-200%) with color-coded warnings
- * - App-only vs Device-wide boost mode toggle
- * - Gradual vs Discrete boost control toggle
- * - Real-time audio device monitoring and display
- * - Test sound generation for boost verification
- * - Safety warnings for high boost levels
- * 
- * Architecture:
- * This component acts as the bridge between the user interface and the native
- * Android audio processing module. It manages state, handles user interactions,
- * and communicates with the native module through the VolumeBoosterModule interface.
- * 
- * @author VolumeBooster Team
- * @version 1.0.1
- * @since React Native 0.81+
- */
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
@@ -41,6 +15,7 @@ import Slider from '@react-native-community/slider';
 import { VolumeBoosterModule, VolumeBoosterEmitter, AudioDeviceInfo } from '../modules/VolumeBoosterModule';
 import { initializeStorage, SettingsChangeEvent } from '../storage';
 import { SettingsManager } from '../storage/SettingsManager';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 /**
  * Props interface for VolumeBooster component
@@ -65,14 +40,15 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
   // ============================================================================
   // THEME DETECTION - System Theme Detection
   // ============================================================================
-  
+
   /** Detect system color scheme (dark/light) */
   const colorScheme = useColorScheme();
-  
+  const insets = useSafeAreaInsets();
+
   // ============================================================================
   // THEME DEFINITIONS - Dark and Light Mode Colors
   // ============================================================================
-  
+
   /**
    * Theme interface for color definitions
    */
@@ -117,8 +93,8 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
     statusBar: '#000000',
     navigationBar: '#000000',
     warningOrange: '#FFA500',
-    warningGreen: '#32CD32',
-    warningLightGreen: '#49f249',
+    warningGreen: '#25ea25ff',
+    warningLightGreen: '#7de37dff',
   };
 
   /**
@@ -150,53 +126,53 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
   // ============================================================================
   // COMPONENT STATE MANAGEMENT
   // ============================================================================
-  
+
   /** Current device volume level (0-100%) */
   const [volume, setVolume] = useState(100);
-  
+
   /** Current audio boost level (0-200%) */
   const [boost, setBoost] = useState(0);
-  
+
   /** Whether boost uses gradual (1%) or discrete (10%) increments */
   const [gradualBoost, setGradualBoost] = useState(false);
-  
+
   /** Whether boost applies to app-only or device-wide audio */
   // const [appOnlyBoost, setAppOnlyBoost] = useState(false); // TODO: Commented out for future implementation
-  
+
   /** Whether boost functionality is enabled or disabled */
   const [boostEnabled, setBoostEnabled] = useState(false);
-  
+
   /** Whether background mode is enabled for continuous boost */
   const [backgroundModeEnabled, setBackgroundModeEnabled] = useState(false);
-  
+
   /** Whether the background service is currently running */
   const [backgroundServiceRunning, setBackgroundServiceRunning] = useState(false);
-  
+
   /** Whether auto-volume mode is enabled (sets device to 100% when app is active) */
   // const [autoVolumeEnabled, setAutoVolumeEnabled] = useState(false); // TODO: Commented out for future implementation
-  
+
   /** Backup of original device volume before auto-volume was applied */
   // const [originalVolume, setOriginalVolume] = useState<number | null>(null); // TODO: Commented out for future implementation
-  
+
   /** Flag to track if we're currently in audio playback mode */
   // const [isAudioPlaying, setIsAudioPlaying] = useState(false); // TODO: Commented out for future implementation
-  
+
   /** Current audio device information for display */
   const [deviceInfo, setDeviceInfo] = useState<AudioDeviceInfo | null>(null);
-  
+
   /** Whether the native audio module has been initialized */
   const [isInitialized, setIsInitialized] = useState(false);
-  
+
   /** Whether device info is expanded or collapsed */
   const [isDeviceInfoExpanded, setIsDeviceInfoExpanded] = useState(false);
-  
+
   /** Reference to track device changes and prevent unnecessary updates */
   const deviceInfoRef = useRef<AudioDeviceInfo | null>(null);
 
   // ============================================================================
   // LOADING SCREEN ANIMATIONS
   // ============================================================================
-  
+
   /** Animated values for loading screen effects */
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -204,23 +180,23 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
   const dotAnim1 = useRef(new Animated.Value(0.3)).current;
   const dotAnim2 = useRef(new Animated.Value(0.3)).current;
   const dotAnim3 = useRef(new Animated.Value(0.3)).current;
-  
+
   /** Loading stage text */
   const [loadingStage, setLoadingStage] = useState('Starting App...');
-  
+
   /** Progress tracking for real initialization */
   const [initializationProgress, setInitializationProgress] = useState(0);
 
   // ============================================================================
   // STORAGE SYSTEM INTEGRATION - New Centralized Storage
   // ============================================================================
-  
+
   /**
    * Settings change listener for automatic UI updates
    */
   const handleSettingsChange = useCallback((event: SettingsChangeEvent) => {
     console.log(`[VolumeBooster] Settings changed: ${event.key} from ${event.oldValue} to ${event.newValue}`);
-    
+
     // Update UI state when settings change externally
     switch (event.key) {
       case 'volume':
@@ -247,7 +223,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
   // ============================================================================
   // APP INITIALIZATION - Settings Loading and Audio Setup
   // ============================================================================
-  
+
   /**
    * Initializes the app using the new centralized storage system
    * 
@@ -265,14 +241,14 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
   const initializeApp = useCallback(async () => {
     try {
       console.log('[VolumeBooster] Fast initialization starting...');
-      
+
       // Step 1: Initialize storage and get settings (20%)
       setLoadingStage('Loading Settings...');
       setInitializationProgress(20);
       await initializeStorage();
       const settingsManagerInstance = SettingsManager.getInstance();
       const savedSettings = settingsManagerInstance.getAllSettings();
-      
+
       // Step 2: Apply settings to UI state (40%)
       setLoadingStage('Applying Settings...');
       setInitializationProgress(40);
@@ -282,55 +258,55 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
       setBoostEnabled(savedSettings.boostEnabled);
       // setAutoVolumeEnabled(savedSettings.autoVolumeEnabled || false); // TODO: Commented out for future implementation
       settingsManagerInstance.addChangeListener(handleSettingsChange);
-      
+
       if (Platform.OS === 'android') {
         // Step 3: Initialize audio system (60%)
         setLoadingStage('Initializing Audio...');
         setInitializationProgress(60);
         await VolumeBoosterModule.initializeAudio();
-        
+
         // Step 4: Parallel operations (80%)
         setLoadingStage('Configuring Audio...');
         setInitializationProgress(80);
-        
+
         // Run these operations in parallel for speed
         const [currentDeviceVolume, audioDeviceInfo] = await Promise.all([
           VolumeBoosterModule.getVolume(),
           VolumeBoosterModule.getAudioDeviceInfo().catch(() => null)
         ]);
-        
+
         // Handle volume and device info
         // if (savedSettings.autoVolumeEnabled) { // TODO: Commented out for future implementation
         //   setOriginalVolume(currentDeviceVolume);
         //   setVolume(currentDeviceVolume);
         // } else {
-          setVolume(currentDeviceVolume);
+        setVolume(currentDeviceVolume);
         // }
-        
+
         if (audioDeviceInfo) {
           setDeviceInfo(audioDeviceInfo);
           deviceInfoRef.current = audioDeviceInfo;
         }
-        
+
         // Step 5: Apply audio settings (90%)
         setLoadingStage('Finalizing...');
         setInitializationProgress(90);
-        
+
         // Apply settings in parallel
         await Promise.all([
           VolumeBoosterModule.setBoostEnabled(savedSettings.boostEnabled),
           // VolumeBoosterModule.setAppOnlyBoost(savedSettings.appOnlyBoost), // TODO: Commented out for future implementation
           savedSettings.boostEnabled ? VolumeBoosterModule.setBoost(savedSettings.boost) : Promise.resolve()
         ]);
-        
+
         // Step 6: Start services and check background status (95%)
         setLoadingStage('Starting Services...');
         setInitializationProgress(95);
-        
+
         // Start monitoring (non-blocking)
         VolumeBoosterModule.startDeviceMonitoring();
         VolumeBoosterModule.startVolumeMonitoring();
-        
+
         // Check background status in parallel
         Promise.all([
           VolumeBoosterModule.isBackgroundModeEnabled().catch(() => false),
@@ -339,11 +315,11 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
           setBackgroundModeEnabled(isBackgroundEnabled);
           setBackgroundServiceRunning(isServiceRunning);
         });
-        
+
         // Step 7: Complete (100%)
         setLoadingStage('Ready!');
         setInitializationProgress(100);
-        
+
         // Quick completion - no delay needed
         setTimeout(() => {
           setIsInitialized(true);
@@ -376,7 +352,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
   // ============================================================================
   // COMPONENT LIFECYCLE - Initialization and Event Listeners
   // ============================================================================
-  
+
   /**
    * Main useEffect hook for component initialization
    * 
@@ -392,7 +368,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
    */
   useEffect(() => {
     initializeApp();
-    
+
     const deviceSubscription = VolumeBoosterEmitter.addListener(
       'audioDeviceChanged',
       (device: AudioDeviceInfo | null) => {
@@ -411,10 +387,10 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
       (newVolume: number) => {
         console.log('[VolumeBooster] Volume changed to:', newVolume);
         setVolume(newVolume);
-        
+
         // Update original volume backup if auto-volume is enabled and volume is not 100%
         // updateOriginalVolumeBackup(newVolume); // TODO: Commented out for future implementation
-        
+
         // Save the new volume to storage
         const settingsManagerInstance = SettingsManager.getInstance();
         settingsManagerInstance.setSetting('volume', newVolume);
@@ -428,7 +404,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
       settingsManagerInstance.removeChangeListener(handleSettingsChange);
       VolumeBoosterModule.stopDeviceMonitoring();
       VolumeBoosterModule.stopVolumeMonitoring();
-      
+
       // Restore original volume if auto-volume was enabled and volume was changed
       // TODO: Commented out for future implementation
       // if (autoVolumeEnabled && originalVolume !== null && Platform.OS === 'android') {
@@ -450,7 +426,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
   // ============================================================================
   // AUTO-VOLUME HANDLERS - TODO: Commented out for future implementation
   // ============================================================================
-  
+
   /**
    * Handles auto-volume toggle changes
    * 
@@ -563,7 +539,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
   // ============================================================================
   // USER INTERACTION HANDLERS
   // ============================================================================
-  
+
   /**
    * Handles volume slider changes using centralized storage
    * 
@@ -576,7 +552,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
   const handleVolumeChange = async (value: number) => {
     console.log('[VolumeBooster] Volume changed to:', value);
     setVolume(value);
-    
+
     if (isInitialized && Platform.OS === 'android') {
       try {
         await VolumeBoosterModule.setVolume(value);
@@ -584,10 +560,10 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
         console.error('[VolumeBooster] Failed to set volume:', error);
       }
     }
-    
+
     // Update original volume backup if auto-volume is enabled and volume is not 100%
     // updateOriginalVolumeBackup(value); // TODO: Commented out for future implementation
-    
+
     // Save setting using centralized storage
     console.log('[VolumeBooster] Saving volume setting to centralized storage...');
     const settingsManagerInstance = SettingsManager.getInstance();
@@ -614,7 +590,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
     const boostValue = gradualBoost ? value : Math.round(value / 10) * 10;
     console.log('[VolumeBooster] Boost changed to:', boostValue);
     setBoost(boostValue);
-    
+
     // Always apply boost to native module (it will handle enabled/disabled state internally)
     if (isInitialized && Platform.OS === 'android') {
       try {
@@ -623,7 +599,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
         console.error('[VolumeBooster] Failed to set boost:', error);
       }
     }
-    
+
     // Save setting using centralized storage
     console.log('[VolumeBooster] Saving boost setting to centralized storage...');
     const settingsManagerInstance = SettingsManager.getInstance();
@@ -642,14 +618,14 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
   const handleGradualBoostToggle = async (value: boolean) => {
     console.log('[VolumeBooster] Gradual boost toggle changed to:', value);
     setGradualBoost(value);
-    
+
     if (!value) {
       // Snap to discrete values when switching off gradual mode
       const discreteValue = Math.round(boost / 10) * 10;
       setBoost(discreteValue);
       handleBoostChange(discreteValue);
     }
-    
+
     // Save setting using centralized storage
     console.log('[VolumeBooster] Saving gradual boost setting to centralized storage...');
     const settingsManagerInstance = SettingsManager.getInstance();
@@ -668,12 +644,12 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
   const handleBoostEnabledToggle = async (value: boolean) => {
     console.log('[VolumeBooster] Boost enabled toggle changed to:', value);
     setBoostEnabled(value);
-    
+
     if (isInitialized && Platform.OS === 'android') {
       try {
         // Set the boost enabled state in the native module
         await VolumeBoosterModule.setBoostEnabled(value);
-        
+
         // Apply current boost level (or 0 if disabled)
         const boostToApply = value ? boost : 0;
         console.log('[VolumeBooster] Applying boost level:', boostToApply);
@@ -683,7 +659,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
         Alert.alert('Error', 'Failed to toggle boost functionality');
       }
     }
-    
+
     // Save setting using centralized storage
     console.log('[VolumeBooster] Saving boost enabled setting to centralized storage...');
     const settingsManagerInstance = SettingsManager.getInstance();
@@ -743,19 +719,19 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
   //     try {
   //       // Start audio playback - trigger auto-volume if enabled
   //       // await handleAudioPlaybackStart(); // TODO: Commented out for future implementation
-        
+
   //       // Play the test sound
   //       await VolumeBoosterModule.playTestSound();
-        
+
   //       // Wait for sound to complete (test sound duration is typically 2-3 seconds)
   //       // setTimeout(async () => { // TODO: Commented out for future implementation
   //       //   await handleAudioPlaybackEnd();
   //       // }, 3000); // 3 second delay to allow test sound to complete
-        
+
   //     } catch (error) {
   //       console.error('Failed to play test sound:', error);
   //       Alert.alert('Error', 'Failed to play test sound');
-        
+
   //       // Restore volume if there was an error
   //       // await handleAudioPlaybackEnd(); // TODO: Commented out for future implementation
   //     }
@@ -774,11 +750,11 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
    */
   const checkBackgroundServiceStatus = useCallback(async () => {
     if (!isInitialized || Platform.OS !== 'android') return;
-    
+
     try {
       const isServiceRunning = await VolumeBoosterModule.isBackgroundServiceRunning();
       setBackgroundServiceRunning(isServiceRunning);
-      
+
       if (backgroundModeEnabled && !isServiceRunning) {
         console.warn('[VolumeBooster] Background mode enabled but service not running');
       }
@@ -801,17 +777,17 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
       Alert.alert('Error', 'Audio system not initialized');
       return;
     }
-    
+
     try {
       console.log('[VolumeBooster] Setting background mode to:', enabled);
-      
+
       const result = await VolumeBoosterModule.setBackgroundMode(enabled);
       setBackgroundModeEnabled(result);
-      
+
       // Check service status after toggling
       const isServiceRunning = await VolumeBoosterModule.isBackgroundServiceRunning();
       setBackgroundServiceRunning(isServiceRunning);
-      
+
       if (enabled) {
         // Alert.alert(
         //   'Background Mode Enabled',
@@ -825,7 +801,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
         //   [{ text: 'OK' }]
         // );
       }
-      
+
       console.log('[VolumeBooster] Background mode toggled successfully:', {
         enabled: result,
         serviceRunning: isServiceRunning
@@ -839,7 +815,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
   // ============================================================================
   // BACKGROUND SERVICE STATUS MONITORING
   // ============================================================================
-  
+
   /**
    * Periodic background service status check
    * 
@@ -861,7 +837,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
   // ============================================================================
   // LOADING SCREEN ANIMATION EFFECTS
   // ============================================================================
-  
+
   /**
    * Loading screen animations
    * 
@@ -953,10 +929,10 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
     if (!isInitialized && Platform.OS === 'android') {
       // Convert progress percentage (0-100) to animation value (0-1)
       const targetValue = initializationProgress / 100;
-      
+
       // Use longer duration for the final step to ensure smooth completion
       const duration = initializationProgress === 100 ? 500 : 300;
-      
+
       Animated.timing(progressAnim, {
         toValue: targetValue,
         duration: duration, // Smooth transition, longer for final step
@@ -968,7 +944,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
   // ============================================================================
   // UTILITY FUNCTIONS - UI Helpers and Information Display
   // ============================================================================
-  
+
   /**
    * Shows app information dialog with storage status
    * 
@@ -981,7 +957,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
   //     const settingsManagerInstance = SettingsManager.getInstance();
   //     const storageStatus = await settingsManagerInstance.getStorageInfo();
   //     
-  //     const info = `VolumeBooster v1.0.1\n\n` +
+  //     const info = `VolumeBooster v(version number)\n\n` +
   //       `Platform: ${Platform.OS}\n` +
   //       `Session ID: ${Math.random().toString(36).substr(2, 9)}\n\n` +
   //       `Current Settings:\n` +
@@ -1000,7 +976,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
   //   } catch (error) {
   //     console.error('[VolumeBooster] Failed to get storage info:', error);
   //     
-  //     const basicInfo = `VolumeBooster v1.0.1\n\n` +
+  //     const basicInfo = `VolumeBooster v(version number)\n\n` +
   //       `Platform: ${Platform.OS}\n` +
   //       `Session ID: ${Math.random().toString(36).substr(2, 9)}\n\n` +
   //       `Current Settings:\n` +
@@ -1025,16 +1001,16 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
   // const clearAllSettings = async () => {
   //   try {
   //     console.log('[VolumeBooster] Clearing all settings using centralized storage...');
-      
+
   //     const settingsManagerInstance = SettingsManager.getInstance();
   //     const success = await settingsManagerInstance.clearSettings();
-      
+
   //     if (success) {
   //       // Reset to default values
   //       // setVolume(100);
   //       // Get current device volume to preserve it
   //       const currentDeviceVolume = await VolumeBoosterModule.getVolume();
-        
+
   //       // Reset to default values but preserve current device volume
   //       setVolume(currentDeviceVolume); // Keep current device volume
   //       setBoost(0);
@@ -1042,10 +1018,10 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
   //       // setAppOnlyBoost(false); // TODO: Commented out for future implementation
   //       setBoostEnabled(false);
   //       // setAutoVolumeEnabled(false); // TODO: Commented out for future implementation
-        
+
   //       // Clear auto-volume backup since it's disabled
   //       // setOriginalVolume(null); // TODO: Commented out for future implementation
-        
+
   //       console.log('[VolumeBooster] Settings reset - volume preserved at:', currentDeviceVolume, '%');
   //       Alert.alert('Settings Cleared', 'All settings have been reset to defaults. Device volume preserved.');
   //     } else {
@@ -1086,7 +1062,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
   // ============================================================================
   // RENDER LOGIC - Component UI Rendering
   // ============================================================================
-  
+
   /**
    * Loading screen displayed while audio system initializes
    * 
@@ -1095,28 +1071,36 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
    */
   if (!isInitialized && Platform.OS === 'android') {
     return (
-      <Animated.View style={[styles.loadingContainer, { backgroundColor: theme.background, opacity: fadeAnim }]}>
+      <Animated.View style={[
+        styles.loadingContainer,
+        {
+          backgroundColor: theme.background,
+          opacity: fadeAnim,
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom
+        }
+      ]}>
         {/* Loading Animation Container */}
         <View style={styles.loadingAnimationContainer}>
           {/* Animated Volume Icon */}
           <Animated.View style={[
-            styles.volumeIconContainer, 
-            { 
+            styles.volumeIconContainer,
+            {
               borderColor: theme.primary,
               transform: [{ scale: pulseAnim }]
             }
           ]}>
             <Text style={[styles.volumeIcon, { color: theme.primary }]}>🔊</Text>
           </Animated.View>
-          
+
           {/* Loading Dots Animation */}
           <View style={styles.loadingDotsContainer}>
             <Animated.View style={[styles.loadingDot, { backgroundColor: theme.primary, opacity: dotAnim1 }]} />
             <Animated.View style={[styles.loadingDot, { backgroundColor: theme.primary, opacity: dotAnim2 }]} />
             <Animated.View style={[styles.loadingDot, { backgroundColor: theme.primary, opacity: dotAnim3 }]} />
-      </View>
+          </View>
         </View>
-        
+
         {/* Loading Text */}
         <Text style={[styles.loadingTitle, { color: theme.text }]}>
           Volume Booster
@@ -1124,12 +1108,12 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
         <Text style={[styles.loadingSubtitle, { color: theme.textMuted }]}>
           {loadingStage}
         </Text>
-        
+
         {/* Progress Bar */}
         <View style={[styles.progressBarContainer, { backgroundColor: theme.border }]}>
           <Animated.View style={[
-            styles.progressBar, 
-            { 
+            styles.progressBar,
+            {
               backgroundColor: theme.primary,
               width: progressAnim.interpolate({
                 inputRange: [0, 1],
@@ -1138,7 +1122,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
             }
           ]} />
         </View>
-        
+
         {/* Loading Tips */}
         <View style={styles.loadingTipsContainer}>
           <Text style={[styles.loadingTip, { color: theme.textMuted }]}>
@@ -1162,7 +1146,16 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
    * - Test sound button
    */
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <View style={[
+      styles.container,
+      {
+        backgroundColor: theme.background,
+        paddingTop: insets.top,
+        paddingBottom: insets.bottom,
+        paddingLeft: insets.left,
+        paddingRight: insets.right
+      }
+    ]}>
       {/* App Header with Title and Info Button */}
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <Text style={[styles.title, { color: theme.text }]}>Volume Booster</Text>
@@ -1193,7 +1186,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
                   </Text>
                 </TouchableOpacity>
               </View>
-              
+
               {/* Detailed Device Information - Collapsible */}
               {isDeviceInfoExpanded && (
                 <Text style={[styles.deviceInfoText, { color: theme.textMuted }]}>
@@ -1226,7 +1219,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
               />
             </View>
           </View>
-          
+
           <Slider
             style={styles.slider}
             minimumValue={0}
@@ -1244,12 +1237,12 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
           <View style={styles.controlHeader}>
             <Text style={[styles.controlLabel, { color: theme.text }]}>Boost:</Text>
             <Text style={[
-              styles.controlValue, 
-              { 
+              styles.controlValue,
+              {
                 color: boost > 150 ? theme.secondary : // Red for very high boost (>150%)
-                     boost > 100 ? theme.warningOrange : // Orange for high boost (100-150%)
-                     boost > 50 ? theme.warningGreen : // Green for moderate boost (50-100%)
-                     theme.textSecondary // Normal color for low boost (0-50%)
+                  boost > 100 ? theme.warningOrange : // Orange for high boost (100-150%)
+                    boost > 50 ? theme.warningGreen : // Green for moderate boost (50-100%)
+                      theme.textSecondary // Normal color for low boost (0-50%)
               }
             ]}>
               {boost}%
@@ -1268,11 +1261,11 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
                 onValueChange={handleGradualBoostToggle}
                 trackColor={{ false: theme.border, true: theme.switchTrack }}
                 thumbColor={gradualBoost ? theme.switchThumb : theme.textMuted}
-                // disabled={!boostEnabled}
+              // disabled={!boostEnabled}
               />
             </View>
           </View>
-          
+
           <Slider
             style={styles.slider}
             minimumValue={0}
@@ -1284,21 +1277,21 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
             step={gradualBoost ? 1 : 10} // - To change step size: modify step calculation
             disabled={!boostEnabled} // Disable slider when boost is not enabled
           />
-          
+
           {/* SAFETY WARNINGS FOR HIGH BOOST LEVELS */}
           {boostEnabled && boost > 150 && (
             <Text style={[styles.warningText, { color: theme.secondary }]}>
-              ⚠️ WARNING: Very high boost may cause audio distortion or speaker damage!
+              ⚠️ WARNING: Very high boost may cause audio distortion or speaker damage
             </Text>
           )}
           {boostEnabled && boost > 100 && boost <= 150 && (
             <Text style={[styles.warningText, { color: theme.warningOrange }]}>
-              ⚡ High boost level - monitor audio quality
+              ⚡ High boost level - monitor audio quality and use with caution
             </Text>
           )}
           {boostEnabled && boost > 50 && boost <= 100 && (
             <Text style={[styles.warningText, { color: theme.warningGreen }]}>
-              🔥 Moderate boost active - audio enhanced
+              🔥 Moderate boost level - monitor audio quality and use with caution
             </Text>
           )}
           {!boostEnabled ? (
@@ -1308,7 +1301,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
           ) : (
             boost <= 50 && (
               <Text style={[styles.warningText, { color: theme.warningLightGreen }]}>
-                🚀 Boost is enabled - monitor audio quality and use responsibly
+                🚀 Boost is enabled - monitor audio quality and use with caution
               </Text>
             )
           )}
@@ -1354,14 +1347,14 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
                 onValueChange={handleBackgroundModeToggle}
                 trackColor={{ false: theme.border, true: theme.switchTrack }}
                 thumbColor={backgroundModeEnabled ? theme.switchThumb : theme.textMuted}
-                // disabled={!boostEnabled}
+              // disabled={!boostEnabled}
               />
             </View>
           </View>
           <Text style={[styles.modeDescription, { color: theme.textMuted }]}>
-            {backgroundModeEnabled 
-              ? 'Audio boost continues working even when the app is closed. A notification will show the current boost level.' 
-              : 'Audio boost only works when the app is active.'
+            {backgroundModeEnabled
+              ? 'Audio boost continues working even when the app is closed'
+              : 'Audio boost only works when the app is active'
             }
           </Text>
           {backgroundModeEnabled && (
@@ -1403,7 +1396,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
 
         {/* Test Sound Button */}
         {/* <View style={styles.controlSection}> */}
-          {/* <TouchableOpacity
+        {/* <TouchableOpacity
             style={[styles.testButton, { backgroundColor: theme.primary }]}
             onPress={handleTestSound}
             activeOpacity={0.8}
@@ -1412,11 +1405,11 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
               🔊 Play Test Sound
             </Text>
           </TouchableOpacity> */}
-          {/* <Text style={[styles.testDescription, { color: theme.textMuted }]}> */}
-            {/* Play a 440Hz tone to test the boost functionality.  */}
-            {/* {appOnlyBoost ? ' This sound will be boosted if app-only mode is enabled.' : ' This sound will be boosted along with all device audio.'} TODO: Commented out for future implementation */}
-            {/* This sound will be boosted along with all device audio. */}
-          {/* </Text> */}
+        {/* <Text style={[styles.testDescription, { color: theme.textMuted }]}> */}
+        {/* Play a 440Hz tone to test the boost functionality.  */}
+        {/* {appOnlyBoost ? ' This sound will be boosted if app-only mode is enabled.' : ' This sound will be boosted along with all device audio.'} TODO: Commented out for future implementation */}
+        {/* This sound will be boosted along with all device audio. */}
+        {/* </Text> */}
         {/* </View> */}
 
         {/* Reset Section - Always visible */}
@@ -1557,11 +1550,10 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    paddingHorizontal: 12,
+    paddingHorizontal: 24, // Increased from 12 for better spacing
   },
   deviceInfoContainer: {
     marginVertical: 24,
-    paddingHorizontal: 14,
   },
   deviceInfoHeader: {
     flexDirection: 'row',
@@ -1597,7 +1589,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 24,
-    paddingHorizontal: 14,
   },
   controlLabel: {
     fontSize: 18,
@@ -1624,11 +1615,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'monospace',
     marginTop: 8,
-    paddingHorizontal: 14,
     lineHeight: 20,
   },
   testButton: {
-    marginHorizontal: 14,
+    marginTop: 12, // Added spacing
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 8,
@@ -1647,21 +1637,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'monospace',
     marginTop: 8,
-    paddingHorizontal: 14,
     lineHeight: 20,
   },
   testDescription: {
     fontSize: 14,
     fontFamily: 'monospace',
     marginTop: 12,
-    paddingHorizontal: 14,
     lineHeight: 20,
   },
   warningText: {
     fontSize: 14,
     fontFamily: 'monospace',
     marginTop: 8,
-    paddingHorizontal: 14,
     lineHeight: 20,
     fontWeight: 'bold',
   },

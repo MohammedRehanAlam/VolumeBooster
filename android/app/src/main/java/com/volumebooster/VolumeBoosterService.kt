@@ -1,21 +1,3 @@
-/**
- * VolumeBoosterService - Android Foreground Service for Background Audio Boost
- * 
- * This service runs in the background to maintain audio boost functionality
- * even when the main app is closed or backgrounded. It uses Android's
- * LoudnessEnhancer API to provide continuous audio enhancement.
- * 
- * Key Features:
- * - Runs as foreground service with persistent notification
- * - Maintains LoudnessEnhancer instance independently of app lifecycle
- * - Supports both app-only and device-wide boost modes
- * - Handles audio session management for background operation
- * - Provides service control methods for React Native integration
- * 
- * @author VolumeBooster Team
- * @version 1.0.1
- * @since Android API 21+
- */
 package com.volumebooster
 
 import android.app.*

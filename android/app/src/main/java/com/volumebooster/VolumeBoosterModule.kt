@@ -1,23 +1,3 @@
-/**
- * VolumeBoosterModule - Android Native Module for Audio Enhancement
- * 
- * This module provides the core audio processing functionality for the VolumeBooster React Native app.
- * It handles volume control, audio boosting, device monitoring, and test sound generation.
- * 
- * Key Features:
- * - Real-time audio boosting using Android LoudnessEnhancer API
- * - App-only vs Device-wide boost modes using AudioSessionId
- * - Live audio device monitoring and information display
- * - Volume level tracking and change detection
- * - Test sound generation for boost verification
- * 
- * Architecture:
- * React Native UI → TypeScript Interface → This Module → Android Audio APIs
- * 
- * @author VolumeBooster Team
- * @version 1.0.1
- * @since Android API 21+
- */
 package com.volumebooster
 
 // Android Audio System Imports

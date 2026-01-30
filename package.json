@@ -1,6 +1,6 @@
 {
   "name": "VolumeBooster",
-  "version": "1.0.1",
+  "version": "1.0.0",
   "description": "A React Native audio enhancement app with volume boosting capabilities beyond system limits",
   "keywords": [
     "react-native",
@@ -17,7 +17,10 @@
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
-    "test": "jest"
+    "test": "jest",
+    "clean:android": "cd android && gradlew clean && cd ..",
+    "clean:android:deep": "cd android && clean-build.bat",
+    "prebuild:android": "npm run clean:android"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",

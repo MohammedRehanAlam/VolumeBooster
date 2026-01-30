@@ -1,20 +1,3 @@
-/**
- * StorageManager - Centralized Storage Management for VolumeBooster App
- * 
- * This module provides a robust, centralized storage system using AsyncStorage
- * with proper error handling, logging, and synchronization mechanisms.
- * 
- * Features:
- * - Centralized storage operations
- * - Automatic error handling and retry logic
- * - Comprehensive logging for debugging
- * - Type-safe storage operations
- * - Backup and restore functionality
- * 
- * @author VolumeBooster Team
- * @version 1.0.1
- */
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**

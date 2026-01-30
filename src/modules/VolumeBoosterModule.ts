@@ -1,25 +1,3 @@
-/**
- * VolumeBoosterModule - TypeScript Interface for Native Audio Module
- * 
- * This file defines the TypeScript interface that bridges the React Native JavaScript
- * layer with the Android native audio processing module. It provides type safety
- * and IntelliSense support for all native module methods and data structures.
- * 
- * Key Features:
- * - Type-safe method signatures for all native functions
- * - AudioDeviceInfo interface for device information
- * - Event emitter setup for real-time updates
- * - Promise-based async operations
- * - Error handling with typed rejections
- * 
- * Architecture:
- * React Native UI → This Interface → Android Native Module → Android Audio APIs
- * 
- * @author VolumeBooster Team
- * @version 1.0.1
- * @since React Native 0.81+
- */
-
 import { NativeModules, NativeEventEmitter } from 'react-native';
 
 // ============================================================================

@@ -14,7 +14,6 @@ A powerful React Native implementation of volume boosting functionality with **b
 ### **🔄 Background Processing** ⭐ **NEW**
 - **Background Mode**: Audio boost continues working even when app is closed
 - **Foreground Service**: Android foreground service maintains boost functionality
-- **Persistent Notification**: Shows current boost level and mode in notification bar
 - **Service Status Monitoring**: Real-time service health checking
 - **Battery Optimized**: Efficient background operation with minimal resource usage
 - **Volume Preservation**: Background mode preserves current device volume
@@ -36,6 +35,7 @@ A powerful React Native implementation of volume boosting functionality with **b
 - **Test Sound**: Built-in 440Hz test tone to verify boost functionality
 - **Instant Toggle**: Seamless background mode switching without popup interruptions
 - **Modern Loading Screen**: Animated loading with progress tracking
+- **Immersive Edge-to-Edge UI**: Translucent status bar and safe area handling for a modern look
 - **Cross-platform**: Works on Android (iOS support can be added)
 
 ## 📊 Boost Levels & Safety
@@ -68,7 +68,6 @@ npx react-native run-android
 4. **Enable Background Mode** (Optional):
    - Toggle the "Background Mode" switch in the app
    - Audio boost will continue working even when app is closed
-   - A persistent notification will show current boost level
 
 5. **Use Auto-Volume** (Optional):
    - Enable "Auto-Volume" for smart volume management
@@ -81,8 +80,7 @@ npx react-native run-android
 1. **Set Boost Level**: Adjust boost slider to desired level (0-200%)
 2. **Enable Background Mode**: Toggle the "Background Mode" switch
 3. **Close App**: Audio boost continues working in background
-4. **Check Notification**: Persistent notification shows boost status
-5. **Disable When Done**: Toggle background mode off to stop service
+4. **Disable When Done**: Toggle background mode off to stop service
 
 ### **Background Mode Features:**
 - ✅ **Continuous Boost**: Works even when app is closed
@@ -203,7 +201,7 @@ Restore Original Volume
 
 #### **Android Native Layer**
 - **VolumeBoosterModule.kt**: Core audio processing using LoudnessEnhancer API
-- **VolumeBoosterService.kt**: ⭐ **NEW** - Background foreground service for continuous boost
+- **VolumeBoosterService.kt**: Background foreground service for continuous boost
 - **VolumeBoosterPackage.kt**: React Native module registration
 - **Audio Session Management**: Handles app-only vs device-wide boost modes
 
@@ -212,12 +210,39 @@ Restore Original Volume
 - **Max Gain**: 50 dB (200% boost)
 - **Session Control**: Uses Android AudioSessionId for app-only boost
 - **Real-time Processing**: Immediate audio enhancement without delay
-- **Background Processing**: ⭐ **NEW** - Continuous boost via foreground service
-- **Independent Controls**: ⭐ **NEW** - All toggles work independently for flexible configuration
+- **Background Processing**: Continuous boost via foreground service
+- **Independent Controls**: All toggles work independently for flexible configuration
 
 ## 📖 Documentation
 
 For detailed technical documentation, integration guide, and API reference, see [doc/VOLUME_BOOSTER_README.md](./doc/VOLUME_BOOSTER_README.md).
+
+## 🔧 Troubleshooting
+
+### Build Issues or Conflicts?
+
+If you're experiencing Android build issues, conflicts, or errors:
+
+**Quick Fix:**
+```bash
+cd android
+clean-build.bat    # Windows
+# OR
+./clean-build.sh   # macOS/Linux
+```
+
+**Documentation:**
+- **[QUICK_FIX.md](./QUICK_FIX.md)** - Fast solutions for common build problems
+- **[ANDROID_BUILD_CLEAN.md](./doc/ANDROID_BUILD_CLEAN.md)** - Complete guide to `.cxx` files and build artifacts
+
+### Common Issues:
+
+| Issue | Solution |
+|-------|----------|
+| Build conflicts after git pull | `npm run clean:android:deep` |
+| "Execution failed for CMake" | Run deep clean script |
+| "Duplicate class" errors | `npm run clean:android:deep` |
+| `.cxx` files causing issues | Already ignored in `.gitignore` ✓ |
 
 ## ⚠️ Safety Warning
 

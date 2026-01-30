@@ -29,6 +29,7 @@ VolumeBooster is a React Native application that provides advanced audio enhance
 - **🎯 Smart Volume Management**: ⭐ **NEW** - Auto-volume with playback detection
 - **⚙️ Independent Controls**: ⭐ **NEW** - All toggles work independently
 - **📱 Modern UI**: ⭐ **NEW** - Animated loading screen with progress tracking
+- **✨ Immersive Interface**: ⭐ **NEW** - Edge-to-edge design with translucent status bar
 
 ## 🏗️ Architecture
 

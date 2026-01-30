@@ -1,22 +1,3 @@
-/**
- * SettingsManager - App Settings Management for VolumeBooster
- * 
- * This module handles all app settings persistence using the centralized
- * StorageManager. It provides type-safe operations for all app settings
- * with automatic synchronization and error handling.
- * 
- * Features:
- * - Type-safe settings management
- * - Automatic persistence on changes
- * - Default value handling
- * - Settings validation
- * - Change event notifications
- * - Backup and restore functionality
- * 
- * @author VolumeBooster Team
- * @version 1.0.1
- */
-
 import { storageManager } from './StorageManager';
 
 /**

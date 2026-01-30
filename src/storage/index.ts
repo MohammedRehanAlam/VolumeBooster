@@ -1,13 +1,3 @@
-/**
- * Storage Module Index - Centralized Storage Exports
- * 
- * This module provides a clean interface to all storage-related functionality
- * for the VolumeBooster app. It exports the main storage managers and types.
- * 
- * @author VolumeBooster Team
- * @version 1.0.1
- */
-
 // Export storage managers
 export { StorageManager, storageManager } from './StorageManager';
 export { SettingsManager, settingsManager } from './SettingsManager';
