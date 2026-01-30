@@ -11,14 +11,14 @@ A powerful React Native implementation of volume boosting functionality with **b
 - **Gradual vs Discrete Boost**: Toggle between continuous (1%) and step-based (10%) boost control
 - **Independent Controls**: All toggles work independently for flexible configuration
 
-### **🔄 Background Processing** ⭐ **NEW**
+### **🔄 Background Processing**
 - **Background Mode**: Audio boost continues working even when app is closed
 - **Foreground Service**: Android foreground service maintains boost functionality
 - **Service Status Monitoring**: Real-time service health checking
 - **Battery Optimized**: Efficient background operation with minimal resource usage
 - **Volume Preservation**: Background mode preserves current device volume
 
-### **🎯 Smart Volume Management** ⭐ **NEW**
+### **🎯 Smart Volume Management**
 - **Auto-Volume Mode**: Automatically sets device volume to 100% only during audio playback
 - **Volume Synchronization**: App syncs with actual device volume on startup
 - **Original Volume Backup**: Remembers and restores original volume after playback
