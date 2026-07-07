@@ -2,6 +2,17 @@
 
 A powerful React Native implementation of volume boosting functionality with **background processing capabilities**. This app allows users to boost audio levels beyond system limits with fine adjustments, real-time audio device monitoring, intelligent boost modes, and **continuous background operation**.
 
+---
+
+## 📲 Download the App
+
+VolumeBooster will soon be available for download on the Google Play Store! 
+
+*   **Google Play Store:** *[Link Coming Soon]*
+*   **Supported Platforms:** Android (Android 7.0 / API 24 and above)
+
+---
+
 ## 🚀 Key Features
 
 ### **Audio Enhancement**
@@ -109,7 +120,7 @@ npx react-native run-android
 
 Want to add volume boosting functionality to your React Native app? 
 
-**📚 [Complete Integration Guide →](./doc/VOLUME_BOOSTER_README.md#integration-guide---use-in-your-own-project)**
+**📚 [Complete Integration Guide →](./docs/VOLUME_BOOSTER_README.md#integration-guide---use-in-your-own-project)**
 
 The `VolumeBooster` component is completely self-contained and can be easily integrated into any React Native project. See the detailed documentation for step-by-step instructions, required dependencies, and customization options.
 
@@ -137,7 +148,7 @@ VolumeBooster/
 │
 ├── 📚 Documentation
 │   ├── README.md                   # This file - project overview
-│   └── doc/
+│   └── docs/
 │       └── VOLUME_BOOSTER_README.md # Detailed technical documentation
 │
 └── ⚙️ Configuration Files
@@ -215,7 +226,7 @@ Restore Original Volume
 
 ## 📖 Documentation
 
-For detailed technical documentation, integration guide, and API reference, see [doc/VOLUME_BOOSTER_README.md](./doc/VOLUME_BOOSTER_README.md).
+For detailed technical documentation, integration guide, and API reference, see [docs/VOLUME_BOOSTER_README.md](./docs/VOLUME_BOOSTER_README.md).
 
 ## 🔧 Troubleshooting
 
@@ -232,8 +243,8 @@ clean-build.bat    # Windows
 ```
 
 **Documentation:**
-- **[QUICK_FIX.md](./QUICK_FIX.md)** - Fast solutions for common build problems
-- **[ANDROID_BUILD_CLEAN.md](./doc/ANDROID_BUILD_CLEAN.md)** - Complete guide to `.cxx` files and build artifacts
+- **[QUICK_FIX.md](./docs/QUICK_FIX.md)** - Fast solutions for common build problems
+- **[ANDROID_BUILD_CLEAN.md](./docs/ANDROID_BUILD_CLEAN.md)** - Complete guide to `.cxx` files and build artifacts
 
 ### Common Issues:
 

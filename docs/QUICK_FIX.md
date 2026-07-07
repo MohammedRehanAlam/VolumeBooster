@@ -100,7 +100,7 @@ npm run android
 
 ## 📚 More Details:
 
-See `doc/ANDROID_BUILD_CLEAN.md` for comprehensive documentation.
+See `docs/ANDROID_BUILD_CLEAN.md` for comprehensive documentation.
 
 ---
 
