@@ -75,6 +75,27 @@ class VolumeBoosterService : Service() {
         return START_STICKY // Restart service if killed by system
     }
     
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        val prefs = getSharedPreferences("VolumeBoosterPrefs", Context.MODE_PRIVATE)
+        val isBgEnabled = prefs.getBoolean("backgroundModeEnabled", false)
+        android.util.Log.d("VolumeBoosterService", "onTaskRemoved: backgroundModeEnabled=$isBgEnabled")
+        
+        if (!isBgEnabled) {
+            enableBoost(false)
+            cleanupAudioResources()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+            } else {
+                @Suppress("DEPRECATION")
+                stopForeground(true)
+            }
+            stopSelf()
+        } else {
+            updateNotification()
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         cleanupAudioResources()
@@ -103,11 +124,17 @@ class VolumeBoosterService : Service() {
     
     private fun cleanupAudioResources() {
         try {
+            loudnessEnhancer?.setTargetGain(0)
+            loudnessEnhancer?.enabled = false
+        } catch (e: Exception) {
+            android.util.Log.e("VolumeBoosterService", "Error disabling LoudnessEnhancer in cleanup", e)
+        }
+        try {
             loudnessEnhancer?.release()
-            loudnessEnhancer = null
         } catch (e: Exception) {
             android.util.Log.e("VolumeBoosterService", "Error cleaning up audio resources", e)
         }
+        loudnessEnhancer = null
     }
     
     // ============================================================================
@@ -116,29 +143,45 @@ class VolumeBoosterService : Service() {
     
     fun setBoost(boostLevel: Int, appOnly: Boolean) {
         try {
+            val sessionChanged = (isAppOnlyBoost != appOnly)
             currentBoostLevel = boostLevel
             isAppOnlyBoost = appOnly
             
-            // Reinitialize loudness enhancer with appropriate session ID
-            loudnessEnhancer?.release()
-            loudnessEnhancer = if (appOnly) {
-                LoudnessEnhancer(audioSessionID)
-            } else {
-                LoudnessEnhancer(0)
+            if (sessionChanged || loudnessEnhancer == null) {
+                cleanupAudioResources()
+                loudnessEnhancer = if (appOnly) {
+                    LoudnessEnhancer(audioSessionID)
+                } else {
+                    LoudnessEnhancer(0)
+                }
             }
             
             // Apply boost if enabled
             if (isBoostEnabled && boostLevel > 0) {
                 val gainInMillibels = boostLevel * 25 // Convert percentage to millibels
                 loudnessEnhancer?.setTargetGain(gainInMillibels)
-                loudnessEnhancer?.setEnabled(true)
+                loudnessEnhancer?.enabled = true
+            } else {
+                loudnessEnhancer?.setTargetGain(0)
+                loudnessEnhancer?.enabled = false
             }
             
             // Update notification
             updateNotification()
             
         } catch (e: Exception) {
-            android.util.Log.e("VolumeBoosterService", "Failed to set boost", e)
+            android.util.Log.e("VolumeBoosterService", "Failed to set boost, attempting recreate", e)
+            cleanupAudioResources()
+            try {
+                loudnessEnhancer = if (appOnly) LoudnessEnhancer(audioSessionID) else LoudnessEnhancer(0)
+                if (isBoostEnabled && boostLevel > 0) {
+                    loudnessEnhancer?.setTargetGain(boostLevel * 25)
+                    loudnessEnhancer?.enabled = true
+                }
+            } catch (ex: Exception) {
+                android.util.Log.e("VolumeBoosterService", "Failed to recreate LoudnessEnhancer in service", ex)
+            }
+            updateNotification()
         }
     }
     
@@ -149,11 +192,11 @@ class VolumeBoosterService : Service() {
             if (enabled && currentBoostLevel > 0) {
                 val gainInMillibels = currentBoostLevel * 25
                 loudnessEnhancer?.setTargetGain(gainInMillibels)
-                loudnessEnhancer?.setEnabled(true)
+                loudnessEnhancer?.enabled = true
             } else {
                 // When disabling boost, set gain to 0 and disable
                 loudnessEnhancer?.setTargetGain(0)
-                loudnessEnhancer?.setEnabled(false)
+                loudnessEnhancer?.enabled = false
             }
             
             // Update notification

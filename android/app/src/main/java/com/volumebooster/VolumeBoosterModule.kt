@@ -31,7 +31,11 @@ import kotlin.math.PI
  * to the React Native JavaScript layer. It manages all audio-related operations including
  * volume control, boost processing, device monitoring, and test sound generation.
  */
-class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
+class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext), LifecycleEventListener {
+
+    init {
+        reactContext.addLifecycleEventListener(this)
+    }
 
     // ============================================================================
     // CLASS VARIABLES - Audio System State Management
@@ -207,84 +211,54 @@ class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : R
     @ReactMethod
     fun setBoost(boostLevel: Int, promise: Promise) {
         try {
-            // Track current boost level
-            currentBoostLevel = boostLevel
-            
-            if (isBackgroundModeEnabled && isServiceBound && volumeBoosterService != null) {
-                // Use background service for boost control
-                volumeBoosterService?.setBoost(boostLevel, isAppOnlyBoost)
-            } else {
-                // Use local LoudnessEnhancer for foreground boost
-                // Initialize LoudnessEnhancer with appropriate session ID
-                if (isAppOnlyBoost) {
-                    // For app-only boost, use the app's audio session ID
-                    // This means boost only affects audio from this specific app
-                    loudnessEnhancer?.release()
-                    loudnessEnhancer = LoudnessEnhancer(audioSessionID)
-                } else {
-                    // For device-wide boost, use session ID 0 (global)
-                    // This means boost affects ALL audio on the device
-                    loudnessEnhancer?.release()
-                    loudnessEnhancer = LoudnessEnhancer(0)
-                }
-                
-                // BOOST CALCULATION:
-                // Android LoudnessEnhancer uses millibels (mB) where 1000 mB = 1 dB
-                // Formula: boostLevel * 25 = gain in millibels
-                // Examples:
-                // - 100% boost = 100 * 25 = 2500 mB = 25 dB
-                // - 200% boost = 200 * 25 = 5000 mB = 50 dB
-                // 
-                // TO CHANGE MAX BOOST LEVEL:
-                // 1. Change the multiplier (currently 25) to adjust gain per percentage
-                // 2. Higher multiplier = more gain per percentage point
-                // 3. Lower multiplier = less gain per percentage point
-                // 4. Android LoudnessEnhancer max is ~100 dB (10,000 mB)
-                // 5. So theoretical max with current formula: 400% (400 * 25 = 10,000 mB)
-                loudnessEnhancer?.setTargetGain(boostLevel * 25)
-                loudnessEnhancer?.enabled = true
-                
-                // Restart audio playback to apply the boost effect
-                if (isBoostEnabled) {
-                    restartAudioPlayback()
-                }
-            }
-            
+            applyBoostSafely(boostLevel, isAppOnlyBoost)
             promise.resolve(null)
         } catch (e: Exception) {
             promise.reject("BOOST_ERROR", "Failed to set boost", e)
         }
     }
 
-    /**
-     * Sets the boost enabled state
-     * 
-     * This method controls whether boost functionality is active or not.
-     * When disabled, boost changes are ignored and no audio enhancement is applied.
-     * 
-     * @param enabled true to enable boost functionality, false to disable
-     * @param promise Promise to resolve on success or reject on error
-     */
     @ReactMethod
     fun setBoostEnabled(enabled: Boolean, promise: Promise) {
         try {
             isBoostEnabled = enabled
             
-            if (isBackgroundModeEnabled && isServiceBound && volumeBoosterService != null) {
-                // Use background service for boost control
-                volumeBoosterService?.enableBoost(enabled)
-            } else {
-                // Use local LoudnessEnhancer for foreground boost
-                if (loudnessEnhancer != null) {
-                    if (!enabled) {
-                        // If disabling boost, turn off loudness enhancer and set gain to 0
-                        loudnessEnhancer?.setTargetGain(0)
-                        loudnessEnhancer?.enabled = false
-                    } else {
-                        // If enabling boost, turn on loudness enhancer
-                        loudnessEnhancer?.enabled = true
+            if (enabled) {
+                if (isBackgroundModeEnabled) {
+                    VolumeBoosterService.startService(reactContext)
+                    if (!isServiceBound) {
+                        val intent = Intent(reactContext, VolumeBoosterService::class.java)
+                        reactContext.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
                     }
+                    if (volumeBoosterService != null) {
+                        volumeBoosterService?.enableBoost(true)
+                        if (currentBoostLevel > 0) {
+                            volumeBoosterService?.setBoost(currentBoostLevel, isAppOnlyBoost)
+                        }
+                    }
+                } else {
+                    applyBoostSafely(currentBoostLevel, isAppOnlyBoost)
                 }
+            } else {
+                if (isServiceBound) {
+                    try {
+                        if (volumeBoosterService != null) {
+                            volumeBoosterService?.enableBoost(false)
+                        }
+                        reactContext.unbindService(serviceConnection)
+                    } catch (e: Exception) {
+                        android.util.Log.e("VolumeBoosterModule", "Error unbinding service", e)
+                    }
+                    isServiceBound = false
+                    volumeBoosterService = null
+                }
+                try {
+                    VolumeBoosterService.stopService(reactContext)
+                } catch (e: Exception) {
+                    android.util.Log.e("VolumeBoosterModule", "Error stopping service", e)
+                }
+                
+                safelyReleaseLoudnessEnhancer()
             }
             
             promise.resolve(null)
@@ -293,37 +267,12 @@ class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : R
         }
     }
 
-    /**
-     * Toggles between app-only and device-wide boost modes
-     * 
-     * This method switches the LoudnessEnhancer session ID:
-     * - App-only mode: Uses app's unique audioSessionID
-     * - Device-wide mode: Uses session ID 0 (global)
-     * 
-     * When switching modes, the LoudnessEnhancer is recreated with the new session ID
-     * to ensure proper audio isolation or global effect.
-     * 
-     * @param enabled true for app-only boost, false for device-wide boost
-     * @param promise Promise to resolve on success or reject on error
-     */
     @ReactMethod
     fun setAppOnlyBoost(enabled: Boolean, promise: Promise) {
         try {
             isAppOnlyBoost = enabled
-            
-            if (isBackgroundModeEnabled && isServiceBound && volumeBoosterService != null) {
-                // Use background service for boost control
-                volumeBoosterService?.setBoost(currentBoostLevel, enabled)
-            } else {
-                // Reinitialize loudness enhancer with appropriate session ID
-                loudnessEnhancer?.release()
-                loudnessEnhancer = if (enabled) {
-                    LoudnessEnhancer(audioSessionID)
-                } else {
-                    LoudnessEnhancer(0)
-                }
-            }
-            
+            safelyReleaseLoudnessEnhancer()
+            applyBoostSafely(currentBoostLevel, enabled)
             promise.resolve(null)
         } catch (e: Exception) {
             promise.reject("APP_ONLY_BOOST_ERROR", "Failed to set app-only boost mode", e)
@@ -418,6 +367,11 @@ class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : R
                         return
                     }
                     lastDeviceId = activeDevice.id
+
+                    // Re-apply boost on audio routing changes so boost doesn't drop when connecting headphones/bluetooth
+                    if (isBoostEnabled && currentBoostLevel > 0) {
+                        applyBoostSafely(currentBoostLevel, isAppOnlyBoost)
+                    }
 
                     val deviceInfo = WritableNativeMap().apply {
                         putString("name", activeDevice.productName?.toString() ?: "N/A")
@@ -692,25 +646,31 @@ class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : R
         try {
             isBackgroundModeEnabled = enabled
             
-            if (enabled) {
-                // Start foreground service
+            val prefs = reactContext.getSharedPreferences("VolumeBoosterPrefs", Context.MODE_PRIVATE)
+            prefs.edit().putBoolean("backgroundModeEnabled", enabled).apply()
+            
+            if (enabled && isBoostEnabled) {
+                // Start foreground service only if boost is enabled
                 VolumeBoosterService.startService(reactContext)
                 
-                // Bind to service for communication
-                val intent = Intent(reactContext, VolumeBoosterService::class.java)
-                reactContext.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+                if (!isServiceBound) {
+                    val intent = Intent(reactContext, VolumeBoosterService::class.java)
+                    reactContext.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+                }
                 
                 promise.resolve(true)
             } else {
-                // Stop foreground service
-                VolumeBoosterService.stopService(reactContext)
-                
-                // Unbind from service
+                // Stop foreground service if background mode is turned off or boost is disabled
                 if (isServiceBound) {
-                    reactContext.unbindService(serviceConnection)
+                    try {
+                        reactContext.unbindService(serviceConnection)
+                    } catch (e: Exception) {
+                        android.util.Log.e("VolumeBoosterModule", "Error unbinding service", e)
+                    }
                     isServiceBound = false
                     volumeBoosterService = null
                 }
+                VolumeBoosterService.stopService(reactContext)
                 
                 promise.resolve(false)
             }
@@ -718,7 +678,94 @@ class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : R
             promise.reject("BACKGROUND_MODE_ERROR", "Failed to set background mode", e)
         }
     }
-    
+
+    private fun safelyReleaseLoudnessEnhancer() {
+        try {
+            loudnessEnhancer?.setTargetGain(0)
+            loudnessEnhancer?.enabled = false
+        } catch (e: Exception) {
+            android.util.Log.e("VolumeBoosterModule", "Error disabling LoudnessEnhancer prior to release", e)
+        }
+        try {
+            loudnessEnhancer?.release()
+        } catch (e: Exception) {
+            android.util.Log.e("VolumeBoosterModule", "Error releasing LoudnessEnhancer", e)
+        }
+        loudnessEnhancer = null
+    }
+
+    private fun applyBoostSafely(boostLevel: Int, appOnly: Boolean) {
+        currentBoostLevel = boostLevel
+        isAppOnlyBoost = appOnly
+
+        if (isBackgroundModeEnabled && isServiceBound && volumeBoosterService != null) {
+            volumeBoosterService?.setBoost(boostLevel, appOnly)
+            return
+        }
+
+        if (!isBoostEnabled || boostLevel <= 0) {
+            safelyReleaseLoudnessEnhancer()
+            return
+        }
+
+        val targetSessionId = if (appOnly) audioSessionID else 0
+        try {
+            if (loudnessEnhancer == null) {
+                loudnessEnhancer = LoudnessEnhancer(targetSessionId)
+            }
+            val gainInMb = boostLevel * 25
+            loudnessEnhancer?.setTargetGain(gainInMb)
+            loudnessEnhancer?.enabled = true
+        } catch (e: Exception) {
+            android.util.Log.e("VolumeBoosterModule", "Failed setting gain on existing enhancer, attempting recreate", e)
+            safelyReleaseLoudnessEnhancer()
+            try {
+                loudnessEnhancer = LoudnessEnhancer(targetSessionId)
+                val gainInMb = boostLevel * 25
+                loudnessEnhancer?.setTargetGain(gainInMb)
+                loudnessEnhancer?.enabled = true
+            } catch (ex: Exception) {
+                android.util.Log.e("VolumeBoosterModule", "Failed to apply boost after recreate", ex)
+            }
+        }
+    }
+
+    // ============================================================================
+    // REACT NATIVE LIFECYCLE EVENT LISTENERS
+    // ============================================================================
+
+    override fun onHostResume() {
+        android.util.Log.d("VolumeBoosterModule", "onHostResume: checking audio boost state")
+        if (isBoostEnabled && currentBoostLevel > 0 && !isBackgroundModeEnabled) {
+            applyBoostSafely(currentBoostLevel, isAppOnlyBoost)
+        }
+    }
+
+    override fun onHostPause() {
+        android.util.Log.d("VolumeBoosterModule", "onHostPause")
+    }
+
+    override fun onHostDestroy() {
+        android.util.Log.d("VolumeBoosterModule", "onHostDestroy: isBackgroundModeEnabled=$isBackgroundModeEnabled")
+        if (!isBackgroundModeEnabled) {
+            safelyReleaseLoudnessEnhancer()
+            if (isServiceBound) {
+                try {
+                    reactContext.unbindService(serviceConnection)
+                } catch (e: Exception) {
+                    android.util.Log.e("VolumeBoosterModule", "Error unbinding service on host destroy", e)
+                }
+                isServiceBound = false
+                volumeBoosterService = null
+            }
+            try {
+                VolumeBoosterService.stopService(reactContext)
+            } catch (e: Exception) {
+                android.util.Log.e("VolumeBoosterModule", "Error stopping service on host destroy", e)
+            }
+        }
+    }
+
     /**
      * Checks if background mode is currently enabled
      * 
@@ -736,7 +783,7 @@ class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : R
      */
     @ReactMethod
     fun isBackgroundServiceRunning(promise: Promise) {
-        promise.resolve(isServiceBound && volumeBoosterService != null)
+        promise.resolve(isBackgroundModeEnabled && isBoostEnabled)
     }
     
     /**
@@ -783,23 +830,12 @@ class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : R
     
     /**
      * Cleanup method called when React Native module is destroyed
-     * 
-     * This method is called when the React Native bridge is destroyed or the app
-     * is being terminated. It ensures all audio resources are properly released
-     * to prevent memory leaks and audio system conflicts.
-     * 
-     * CLEANUP ACTIONS:
-     * - Releases LoudnessEnhancer resources
-     * - Releases AudioTrack resources
-     * - Removes all pending Handler tasks
-     * - Prevents background monitoring from continuing
-     * - Unbinds from background service if connected
      */
     override fun onCatalystInstanceDestroy() {
         super.onCatalystInstanceDestroy()
         
         // Cleanup local audio resources
-        loudnessEnhancer?.release()
+        safelyReleaseLoudnessEnhancer()
         audioTrack?.release()
         handler.removeCallbacksAndMessages(null)
         
@@ -814,8 +850,8 @@ class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : R
             volumeBoosterService = null
         }
         
-        // Stop background service if running
-        if (isBackgroundModeEnabled) {
+        // Stop background service if background mode is disabled
+        if (!isBackgroundModeEnabled) {
             try {
                 VolumeBoosterService.stopService(reactContext)
             } catch (e: Exception) {

@@ -10,6 +10,7 @@ export interface AppSettings {
   appOnlyBoost: boolean;
   boostEnabled: boolean;
   autoVolumeEnabled: boolean;
+  backgroundModeEnabled: boolean;
 }
 
 /**
@@ -53,6 +54,7 @@ export class SettingsManager {
     appOnlyBoost: false,
     boostEnabled: false,
     autoVolumeEnabled: false,
+    backgroundModeEnabled: false,
   };
 
   /**
@@ -180,6 +182,10 @@ export class SettingsManager {
 
     if (typeof settings.autoVolumeEnabled !== 'boolean') {
       errors.push('AutoVolumeEnabled must be a boolean');
+    }
+
+    if (settings.backgroundModeEnabled !== undefined && typeof settings.backgroundModeEnabled !== 'boolean') {
+      errors.push('BackgroundModeEnabled must be a boolean');
     }
 
     return {

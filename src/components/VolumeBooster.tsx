@@ -211,6 +211,9 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
       case 'gradualBoost':
         setGradualBoost(event.newValue);
         break;
+      case 'backgroundModeEnabled':
+        setBackgroundModeEnabled(event.newValue);
+        break;
       // case 'appOnlyBoost': // TODO: Commented out for future implementation
       //   setAppOnlyBoost(event.newValue);
       //   break;
@@ -254,6 +257,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
       setInitializationProgress(40);
       setBoost(savedSettings.boost);
       setGradualBoost(savedSettings.gradualBoost);
+      setBackgroundModeEnabled(savedSettings.backgroundModeEnabled || false);
       // setAppOnlyBoost(savedSettings.appOnlyBoost); // TODO: Commented out for future implementation
       setBoostEnabled(savedSettings.boostEnabled);
       // setAutoVolumeEnabled(savedSettings.autoVolumeEnabled || false); // TODO: Commented out for future implementation
@@ -294,6 +298,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
 
         // Apply settings in parallel
         await Promise.all([
+          VolumeBoosterModule.setBackgroundMode(savedSettings.backgroundModeEnabled || false),
           VolumeBoosterModule.setBoostEnabled(savedSettings.boostEnabled),
           // VolumeBoosterModule.setAppOnlyBoost(savedSettings.appOnlyBoost), // TODO: Commented out for future implementation
           savedSettings.boostEnabled ? VolumeBoosterModule.setBoost(savedSettings.boost) : Promise.resolve()
@@ -307,14 +312,14 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
         VolumeBoosterModule.startDeviceMonitoring();
         VolumeBoosterModule.startVolumeMonitoring();
 
-        // Check background status in parallel
-        Promise.all([
-          VolumeBoosterModule.isBackgroundModeEnabled().catch(() => false),
-          VolumeBoosterModule.isBackgroundServiceRunning().catch(() => false)
-        ]).then(([isBackgroundEnabled, isServiceRunning]) => {
-          setBackgroundModeEnabled(isBackgroundEnabled);
-          setBackgroundServiceRunning(isServiceRunning);
-        });
+        // Check background status
+        VolumeBoosterModule.isBackgroundServiceRunning()
+          .then((isServiceRunning) => {
+            setBackgroundServiceRunning(isServiceRunning);
+          })
+          .catch(() => {
+            setBackgroundServiceRunning(false);
+          });
 
         // Step 7: Complete (100%)
         setLoadingStage('Ready!');
@@ -623,7 +628,9 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
       // Snap to discrete values when switching off gradual mode
       const discreteValue = Math.round(boost / 10) * 10;
       setBoost(discreteValue);
-      handleBoostChange(discreteValue);
+      if (boostEnabled) {
+        handleBoostChange(discreteValue);
+      }
     }
 
     // Save setting using centralized storage
@@ -650,10 +657,15 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
         // Set the boost enabled state in the native module
         await VolumeBoosterModule.setBoostEnabled(value);
 
-        // Apply current boost level (or 0 if disabled)
-        const boostToApply = value ? boost : 0;
-        console.log('[VolumeBooster] Applying boost level:', boostToApply);
-        await VolumeBoosterModule.setBoost(boostToApply);
+        // Only apply current boost level if boost is being enabled (not when disabling)
+        if (value) {
+          console.log('[VolumeBooster] Applying boost level:', boost);
+          await VolumeBoosterModule.setBoost(boost);
+        }
+
+        // Update service status check after boost toggle
+        const isServiceRunning = await VolumeBoosterModule.isBackgroundServiceRunning();
+        setBackgroundServiceRunning(isServiceRunning);
       } catch (error) {
         console.error('[VolumeBooster] Failed to toggle boost functionality:', error);
         Alert.alert('Error', 'Failed to toggle boost functionality');
@@ -781,35 +793,26 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
     try {
       console.log('[VolumeBooster] Setting background mode to:', enabled);
 
-      const result = await VolumeBoosterModule.setBackgroundMode(enabled);
-      setBackgroundModeEnabled(result);
+      setBackgroundModeEnabled(enabled);
+      await VolumeBoosterModule.setBackgroundMode(enabled);
 
       // Check service status after toggling
       const isServiceRunning = await VolumeBoosterModule.isBackgroundServiceRunning();
       setBackgroundServiceRunning(isServiceRunning);
 
-      if (enabled) {
-        // Alert.alert(
-        //   'Background Mode Enabled',
-        //   'Audio boost will continue working even when the app is closed. A notification will show the current boost level.',
-        //   [{ text: 'OK' }]
-        // );
-      } else {
-        // Alert.alert(
-        //   'Background Mode Disabled',
-        //   'Audio boost will only work when the app is active.',
-        //   [{ text: 'OK' }]
-        // );
-      }
-
       console.log('[VolumeBooster] Background mode toggled successfully:', {
-        enabled: result,
+        enabled,
         serviceRunning: isServiceRunning
       });
     } catch (error) {
       console.error('[VolumeBooster] Failed to toggle background mode:', error);
       Alert.alert('Error', 'Failed to toggle background mode');
     }
+
+    // Save setting using centralized storage
+    console.log('[VolumeBooster] Saving background mode setting to centralized storage...');
+    const settingsManagerInstance = SettingsManager.getInstance();
+    await settingsManagerInstance.setSetting('backgroundModeEnabled', enabled);
   };
 
   // ============================================================================
@@ -823,16 +826,20 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
    * to ensure the service is still running and update the UI accordingly.
    */
   useEffect(() => {
-    if (!backgroundModeEnabled || !isInitialized) return;
+    if (!isInitialized) return;
 
-    const timeout = setTimeout(() => {
-      checkBackgroundServiceStatus();
-    }, 2000); // Check once after 2 seconds
+    checkBackgroundServiceStatus();
 
-    return () => {
-      clearTimeout(timeout);
-    };
-  }, [backgroundModeEnabled, isInitialized, checkBackgroundServiceStatus]);
+    if (backgroundModeEnabled) {
+      const timeout = setTimeout(() => {
+        checkBackgroundServiceStatus();
+      }, 500);
+
+      return () => {
+        clearTimeout(timeout);
+      };
+    }
+  }, [backgroundModeEnabled, boostEnabled, isInitialized, checkBackgroundServiceStatus]);
 
   // ============================================================================
   // LOADING SCREEN ANIMATION EFFECTS
@@ -1252,7 +1259,7 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
               {boost > 50 && boost <= 100} {/* Moderate boost indicator */}
             </Text>
             <View style={styles.toggleContainer}>
-              <Text style={[styles.switchLabel, { color: boostEnabled && gradualBoost ? theme.text : theme.textMuted }]}>
+              <Text style={[styles.switchLabel, { color: gradualBoost ? theme.text : theme.textMuted }]}>
                 Gradual
               </Text>
               <Switch
@@ -1261,7 +1268,6 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
                 onValueChange={handleGradualBoostToggle}
                 trackColor={{ false: theme.border, true: theme.switchTrack }}
                 thumbColor={gradualBoost ? theme.switchThumb : theme.textMuted}
-              // disabled={!boostEnabled}
               />
             </View>
           </View>
@@ -1353,7 +1359,9 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
           </View>
           <Text style={[styles.modeDescription, { color: theme.textMuted }]}>
             {backgroundModeEnabled
-              ? 'Audio boost continues working even when the app is closed'
+              ? boostEnabled
+                ? 'Audio boost continues working even when the app is closed'
+                : 'Background mode is enabled — audio boost will run in background when Boost is turned ON'
               : 'Audio boost only works when the app is active'
             }
           </Text>
@@ -1363,73 +1371,6 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
             </Text>
           )}
         </View>
-
-        {/* Auto-Volume Toggle - TODO: Commented out for future implementation */}
-        {/* <View style={styles.controlSection}>
-          <View style={styles.controlHeader}>
-            <Text style={[styles.controlLabel, { color: theme.text }]}>Auto-Volume:</Text>
-            <View style={styles.toggleContainer}>
-              <Text style={[styles.switchLabel, { color: autoVolumeEnabled ? theme.text : theme.textMuted }]}>
-                {autoVolumeEnabled ? 'Enabled' : 'Disabled'}
-              </Text>
-              <Switch
-                style={styles.switch}
-                value={autoVolumeEnabled}
-                onValueChange={handleAutoVolumeToggle}
-                trackColor={{ false: theme.border, true: theme.switchTrack }}
-                thumbColor={autoVolumeEnabled ? theme.switchThumb : theme.textMuted}
-              />
-            </View>
-          </View>
-          <Text style={[styles.modeDescription, { color: theme.textMuted }]}>
-            {autoVolumeEnabled ? 
-              `🔊 Device volume automatically set to 100% only when app plays audio (Original: ${originalVolume ? formatVolumeDisplay(originalVolume) : 'N/A'}%)` : 
-              '📱 Uses current device volume level - no automatic changes'
-            }
-          </Text>
-          {autoVolumeEnabled && originalVolume !== null && (
-            <Text style={[styles.statusText, { color: theme.warningGreen }]}>
-              Original Volume: {formatVolumeDisplay(originalVolume)}% (restored after audio playback ends)
-            </Text>
-          )}
-        </View> */}
-
-        {/* Test Sound Button */}
-        {/* <View style={styles.controlSection}> */}
-        {/* <TouchableOpacity
-            style={[styles.testButton, { backgroundColor: theme.primary }]}
-            onPress={handleTestSound}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.testButtonText, { color: theme.background }]}>
-              🔊 Play Test Sound
-            </Text>
-          </TouchableOpacity> */}
-        {/* <Text style={[styles.testDescription, { color: theme.textMuted }]}> */}
-        {/* Play a 440Hz tone to test the boost functionality.  */}
-        {/* {appOnlyBoost ? ' This sound will be boosted if app-only mode is enabled.' : ' This sound will be boosted along with all device audio.'} TODO: Commented out for future implementation */}
-        {/* This sound will be boosted along with all device audio. */}
-        {/* </Text> */}
-        {/* </View> */}
-
-        {/* Reset Section - Always visible */}
-        {/* <View style={styles.controlSection}>
-        <View style={styles.controlHeader}>
-          <Text style={[styles.controlLabel, { color: theme.text }]}>Reset:</Text>
-        </View>
-          <TouchableOpacity
-            style={[styles.testButton, styles.debugButton, { backgroundColor: theme.secondary }]}
-            onPress={clearAllSettings}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.testButtonText, { color: theme.background }]}>
-              🗑️ Reset To Default
-            </Text>
-          </TouchableOpacity>
-          <Text style={[styles.testDescription, { color: theme.textMuted }]}>
-            Clear all saved settings and reset to defaults.
-          </Text>
-        </View> */}
       </ScrollView>
     </View>
   );
