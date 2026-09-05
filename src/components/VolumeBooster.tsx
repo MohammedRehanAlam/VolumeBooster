@@ -296,13 +296,12 @@ const VolumeBooster: React.FC<VolumeBoosterProps> = () => {
         setLoadingStage('Finalizing...');
         setInitializationProgress(90);
 
-        // Apply settings in parallel
-        await Promise.all([
-          VolumeBoosterModule.setBackgroundMode(savedSettings.backgroundModeEnabled || false),
-          VolumeBoosterModule.setBoostEnabled(savedSettings.boostEnabled),
-          // VolumeBoosterModule.setAppOnlyBoost(savedSettings.appOnlyBoost), // TODO: Commented out for future implementation
-          savedSettings.boostEnabled ? VolumeBoosterModule.setBoost(savedSettings.boost) : Promise.resolve()
-        ]);
+        // Apply settings sequentially to avoid race conditions
+        await VolumeBoosterModule.setBackgroundMode(savedSettings.backgroundModeEnabled || false);
+        await VolumeBoosterModule.setBoostEnabled(savedSettings.boostEnabled);
+        if (savedSettings.boostEnabled) {
+          await VolumeBoosterModule.setBoost(savedSettings.boost);
+        }
 
         // Step 6: Start services and check background status (95%)
         setLoadingStage('Starting Services...');

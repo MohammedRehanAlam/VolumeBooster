@@ -1,8 +1,10 @@
 package com.volumebooster
 
 import android.app.*
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.media.AudioManager
 import android.media.audiofx.LoudnessEnhancer
 import android.os.Binder
@@ -39,9 +41,26 @@ class VolumeBoosterService : Service() {
     private var isAppOnlyBoost = false
     private var currentBoostLevel = 0
     private val handler = Handler(Looper.getMainLooper())
+    private var isReceiverRegistered = false
     
     // React Native context for event emission (if available)
     private var reactContext: com.facebook.react.bridge.ReactApplicationContext? = null
+    
+    // Receiver for hardware/external volume change events to dynamically update proportional boost
+    private val volumeReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == "android.media.VOLUME_CHANGED_ACTION") {
+                if (isBoostEnabled && currentBoostLevel > 0) {
+                    try {
+                        val gainInMillibels = calculateGainInMb(currentBoostLevel)
+                        loudnessEnhancer?.setTargetGain(gainInMillibels)
+                    } catch (e: Exception) {
+                        android.util.Log.e("VolumeBoosterService", "Error updating boost on volume change", e)
+                    }
+                }
+            }
+        }
+    }
     
     // ============================================================================
     // SERVICE LIFECYCLE METHODS
@@ -51,15 +70,45 @@ class VolumeBoosterService : Service() {
         super.onCreate()
         initializeAudioSystem()
         createNotificationChannel()
+        
+        try {
+            val filter = IntentFilter("android.media.VOLUME_CHANGED_ACTION")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(volumeReceiver, filter, Context.RECEIVER_EXPORTED)
+            } else {
+                registerReceiver(volumeReceiver, filter)
+            }
+            isReceiverRegistered = true
+        } catch (e: Exception) {
+            android.util.Log.e("VolumeBoosterService", "Failed to register volumeReceiver", e)
+        }
     }
     
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_START_SERVICE -> {
+                val boostLevel = intent.getIntExtra(EXTRA_BOOST_LEVEL, currentBoostLevel)
+                val appOnly = intent.getBooleanExtra(EXTRA_APP_ONLY, isAppOnlyBoost)
+                val enabled = intent.getBooleanExtra(EXTRA_ENABLED, true)
+                
+                isBoostEnabled = enabled
+                isAppOnlyBoost = appOnly
+                currentBoostLevel = boostLevel
+                
                 startForeground(NOTIFICATION_ID, createNotification())
+                
+                if (isBoostEnabled && currentBoostLevel > 0) {
+                    setBoost(currentBoostLevel, isAppOnlyBoost)
+                }
             }
             ACTION_STOP_SERVICE -> {
-                stopForeground(true)
+                cleanupAudioResources()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                } else {
+                    @Suppress("DEPRECATION")
+                    stopForeground(true)
+                }
                 stopSelf()
             }
             ACTION_SET_BOOST -> {
@@ -98,6 +147,14 @@ class VolumeBoosterService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        if (isReceiverRegistered) {
+            try {
+                unregisterReceiver(volumeReceiver)
+            } catch (e: Exception) {
+                android.util.Log.e("VolumeBoosterService", "Error unregistering volumeReceiver", e)
+            }
+            isReceiverRegistered = false
+        }
         cleanupAudioResources()
     }
     
@@ -109,14 +166,7 @@ class VolumeBoosterService : Service() {
         try {
             audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
             audioSessionID = audioManager.generateAudioSessionId()
-            
-            // Initialize with device-wide boost by default
-            loudnessEnhancer = LoudnessEnhancer(0)
-            
-            // Don't change the current volume - preserve user's volume setting
-            // The boost will work with whatever volume the user has set
             android.util.Log.d("VolumeBoosterService", "Audio system initialized - preserving current volume")
-            
         } catch (e: Exception) {
             android.util.Log.e("VolumeBoosterService", "Failed to initialize audio system", e)
         }
@@ -141,24 +191,45 @@ class VolumeBoosterService : Service() {
     // BOOST CONTROL METHODS
     // ============================================================================
     
+    private fun getStreamVolumePercentage(): Int {
+        return try {
+            val current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+            val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            if (max > 0) {
+                ((current.toFloat() / max) * 100).toInt()
+            } else {
+                100
+            }
+        } catch (e: Exception) {
+            100
+        }
+    }
+
+    fun calculateGainInMb(boostLevel: Int): Int {
+        if (boostLevel <= 0) return 0
+        val volumePercent = getStreamVolumePercentage()
+        // Proportional boost: base boost scaled by the actual current volume level
+        // e.g. at 30% volume and 200% boost, gain is based on 30% of max gain (5000 mB * 0.30 = 1500 mB)
+        val maxGainForBoost = boostLevel * 25
+        val scaledGain = (maxGainForBoost * (volumePercent.toFloat() / 100f)).toInt()
+        return scaledGain.coerceAtLeast(0)
+    }
+
     fun setBoost(boostLevel: Int, appOnly: Boolean) {
         try {
             val sessionChanged = (isAppOnlyBoost != appOnly)
             currentBoostLevel = boostLevel
             isAppOnlyBoost = appOnly
             
+            val targetSessionId = if (appOnly) audioSessionID else 0
             if (sessionChanged || loudnessEnhancer == null) {
                 cleanupAudioResources()
-                loudnessEnhancer = if (appOnly) {
-                    LoudnessEnhancer(audioSessionID)
-                } else {
-                    LoudnessEnhancer(0)
-                }
+                loudnessEnhancer = LoudnessEnhancer(targetSessionId)
             }
             
             // Apply boost if enabled
             if (isBoostEnabled && boostLevel > 0) {
-                val gainInMillibels = boostLevel * 25 // Convert percentage to millibels
+                val gainInMillibels = calculateGainInMb(boostLevel)
                 loudnessEnhancer?.setTargetGain(gainInMillibels)
                 loudnessEnhancer?.enabled = true
             } else {
@@ -173,9 +244,11 @@ class VolumeBoosterService : Service() {
             android.util.Log.e("VolumeBoosterService", "Failed to set boost, attempting recreate", e)
             cleanupAudioResources()
             try {
-                loudnessEnhancer = if (appOnly) LoudnessEnhancer(audioSessionID) else LoudnessEnhancer(0)
+                val targetSessionId = if (appOnly) audioSessionID else 0
+                loudnessEnhancer = LoudnessEnhancer(targetSessionId)
                 if (isBoostEnabled && boostLevel > 0) {
-                    loudnessEnhancer?.setTargetGain(boostLevel * 25)
+                    val gainInMillibels = calculateGainInMb(boostLevel)
+                    loudnessEnhancer?.setTargetGain(gainInMillibels)
                     loudnessEnhancer?.enabled = true
                 }
             } catch (ex: Exception) {
@@ -190,7 +263,11 @@ class VolumeBoosterService : Service() {
             isBoostEnabled = enabled
             
             if (enabled && currentBoostLevel > 0) {
-                val gainInMillibels = currentBoostLevel * 25
+                if (loudnessEnhancer == null) {
+                    val targetSessionId = if (isAppOnlyBoost) audioSessionID else 0
+                    loudnessEnhancer = LoudnessEnhancer(targetSessionId)
+                }
+                val gainInMillibels = calculateGainInMb(currentBoostLevel)
                 loudnessEnhancer?.setTargetGain(gainInMillibels)
                 loudnessEnhancer?.enabled = true
             } else {
@@ -207,6 +284,25 @@ class VolumeBoosterService : Service() {
         }
     }
     
+    fun syncState(enabled: Boolean, boostLevel: Int, appOnly: Boolean) {
+        isBoostEnabled = enabled
+        isAppOnlyBoost = appOnly
+        currentBoostLevel = boostLevel
+        setBoost(boostLevel, appOnly)
+    }
+
+    fun updateVolumeAndBoost() {
+        if (isBoostEnabled && currentBoostLevel > 0) {
+            try {
+                val gainInMillibels = calculateGainInMb(currentBoostLevel)
+                loudnessEnhancer?.setTargetGain(gainInMillibels)
+                loudnessEnhancer?.enabled = true
+            } catch (e: Exception) {
+                android.util.Log.e("VolumeBoosterService", "Error updating volume and boost", e)
+            }
+        }
+    }
+
     fun getCurrentBoostLevel(): Int = currentBoostLevel
     
     fun isBoostActive(): Boolean = isBoostEnabled && currentBoostLevel > 0
@@ -306,11 +402,18 @@ class VolumeBoosterService : Service() {
         const val EXTRA_APP_ONLY = "app_only"
         const val EXTRA_ENABLED = "enabled"
         
-        fun startService(context: Context) {
+        fun startService(context: Context, boostLevel: Int = 0, appOnly: Boolean = false, enabled: Boolean = true) {
             val intent = Intent(context, VolumeBoosterService::class.java).apply {
                 action = ACTION_START_SERVICE
+                putExtra(EXTRA_BOOST_LEVEL, boostLevel)
+                putExtra(EXTRA_APP_ONLY, appOnly)
+                putExtra(EXTRA_ENABLED, enabled)
             }
-            context.startForegroundService(intent)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
         }
         
         fun stopService(context: Context) {

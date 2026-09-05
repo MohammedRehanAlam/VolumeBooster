@@ -33,10 +33,6 @@ import kotlin.math.PI
  */
 class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext), LifecycleEventListener {
 
-    init {
-        reactContext.addLifecycleEventListener(this)
-    }
-
     // ============================================================================
     // CLASS VARIABLES - Audio System State Management
     // ============================================================================
@@ -83,11 +79,32 @@ class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : R
             volumeBoosterService = binder.getService()
             volumeBoosterService?.setReactContext(reactContext)
             isServiceBound = true
+            
+            // Sync active boost state to service immediately
+            if (isBoostEnabled && currentBoostLevel > 0) {
+                volumeBoosterService?.syncState(true, currentBoostLevel, isAppOnlyBoost)
+                // Release local enhancer now that service is actively managing it
+                safelyReleaseLoudnessEnhancer()
+            }
         }
         
         override fun onServiceDisconnected(name: ComponentName?) {
             volumeBoosterService = null
             isServiceBound = false
+            // Fallback to local enhancer if boost is still enabled
+            if (isBoostEnabled && currentBoostLevel > 0) {
+                applyBoostSafely(currentBoostLevel, isAppOnlyBoost)
+            }
+        }
+    }
+
+    init {
+        reactContext.addLifecycleEventListener(this)
+        try {
+            val prefs = reactContext.getSharedPreferences("VolumeBoosterPrefs", Context.MODE_PRIVATE)
+            isBackgroundModeEnabled = prefs.getBoolean("backgroundModeEnabled", false)
+        } catch (e: Exception) {
+            // ignore
         }
     }
 
@@ -125,11 +142,7 @@ class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : R
             audioManager = reactContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
             audioSessionID = audioManager.generateAudioSessionId()
             
-            // Initialize with device-wide boost by default
-            loudnessEnhancer = LoudnessEnhancer(0)
-            
             val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-            // audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
             
             // Don't change the current volume - just track it
             val currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
@@ -139,6 +152,30 @@ class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : R
         } catch (e: Exception) {
             promise.reject("INIT_ERROR", "Failed to initialize audio", e)
         }
+    }
+
+    private fun getStreamVolumePercentage(): Int {
+        return try {
+            val current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+            val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            if (max > 0) {
+                ((current.toFloat() / max) * 100).toInt()
+            } else {
+                100
+            }
+        } catch (e: Exception) {
+            100
+        }
+    }
+
+    private fun calculateGainInMb(boostLevel: Int): Int {
+        if (boostLevel <= 0) return 0
+        val volumePercent = getStreamVolumePercentage()
+        // Proportional boost: base boost scaled by the actual current volume level
+        // e.g. at 30% volume and 200% boost, gain is based on 30% of max gain (5000 mB * 0.30 = 1500 mB)
+        val maxGainForBoost = boostLevel * 25
+        val scaledGain = (maxGainForBoost * (volumePercent.toFloat() / 100f)).toInt()
+        return scaledGain.coerceAtLeast(0)
     }
 
     // ============================================================================
@@ -160,6 +197,16 @@ class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : R
             val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
             val actualVolume = ((volume.toFloat() / 100) * maxVolume).toInt()
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, actualVolume, 0)
+            lastVolumeLevel = volume.toInt()
+            
+            // Re-apply boost with new volume level if boost is active
+            if (isBoostEnabled && currentBoostLevel > 0) {
+                if (isBackgroundModeEnabled && isServiceBound && volumeBoosterService != null) {
+                    volumeBoosterService?.updateVolumeAndBoost()
+                } else {
+                    applyBoostSafely(currentBoostLevel, isAppOnlyBoost)
+                }
+            }
             promise.resolve(null)
         } catch (e: Exception) {
             promise.reject("VOLUME_ERROR", "Failed to set volume", e)
@@ -211,7 +258,12 @@ class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : R
     @ReactMethod
     fun setBoost(boostLevel: Int, promise: Promise) {
         try {
-            applyBoostSafely(boostLevel, isAppOnlyBoost)
+            currentBoostLevel = boostLevel
+            if (isBackgroundModeEnabled && isServiceBound && volumeBoosterService != null) {
+                volumeBoosterService?.setBoost(boostLevel, isAppOnlyBoost)
+            } else {
+                applyBoostSafely(boostLevel, isAppOnlyBoost)
+            }
             promise.resolve(null)
         } catch (e: Exception) {
             promise.reject("BOOST_ERROR", "Failed to set boost", e)
@@ -225,16 +277,13 @@ class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : R
             
             if (enabled) {
                 if (isBackgroundModeEnabled) {
-                    VolumeBoosterService.startService(reactContext)
+                    safelyReleaseLoudnessEnhancer()
+                    VolumeBoosterService.startService(reactContext, currentBoostLevel, isAppOnlyBoost, true)
                     if (!isServiceBound) {
                         val intent = Intent(reactContext, VolumeBoosterService::class.java)
                         reactContext.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
-                    }
-                    if (volumeBoosterService != null) {
-                        volumeBoosterService?.enableBoost(true)
-                        if (currentBoostLevel > 0) {
-                            volumeBoosterService?.setBoost(currentBoostLevel, isAppOnlyBoost)
-                        }
+                    } else {
+                        volumeBoosterService?.syncState(true, currentBoostLevel, isAppOnlyBoost)
                     }
                 } else {
                     applyBoostSafely(currentBoostLevel, isAppOnlyBoost)
@@ -242,9 +291,7 @@ class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : R
             } else {
                 if (isServiceBound) {
                     try {
-                        if (volumeBoosterService != null) {
-                            volumeBoosterService?.enableBoost(false)
-                        }
+                        volumeBoosterService?.enableBoost(false)
                         reactContext.unbindService(serviceConnection)
                     } catch (e: Exception) {
                         android.util.Log.e("VolumeBoosterModule", "Error unbinding service", e)
@@ -370,7 +417,11 @@ class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : R
 
                     // Re-apply boost on audio routing changes so boost doesn't drop when connecting headphones/bluetooth
                     if (isBoostEnabled && currentBoostLevel > 0) {
-                        applyBoostSafely(currentBoostLevel, isAppOnlyBoost)
+                        if (isBackgroundModeEnabled && isServiceBound && volumeBoosterService != null) {
+                            volumeBoosterService?.updateVolumeAndBoost()
+                        } else {
+                            applyBoostSafely(currentBoostLevel, isAppOnlyBoost)
+                        }
                     }
 
                     val deviceInfo = WritableNativeMap().apply {
@@ -433,6 +484,15 @@ class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : R
                         lastVolumeLevel = volumePercentage
                         val eventEmitter = reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
                         eventEmitter.emit("volumeChanged", volumePercentage)
+                        
+                        // Re-apply boost with new volume level if boost is active
+                        if (isBoostEnabled && currentBoostLevel > 0) {
+                            if (isBackgroundModeEnabled && isServiceBound && volumeBoosterService != null) {
+                                volumeBoosterService?.updateVolumeAndBoost()
+                            } else {
+                                applyBoostSafely(currentBoostLevel, isAppOnlyBoost)
+                            }
+                        }
                     }
                 } catch (e: Exception) {
                     // Handle error silently for monitoring
@@ -649,20 +709,23 @@ class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : R
             val prefs = reactContext.getSharedPreferences("VolumeBoosterPrefs", Context.MODE_PRIVATE)
             prefs.edit().putBoolean("backgroundModeEnabled", enabled).apply()
             
-            if (enabled && isBoostEnabled) {
-                // Start foreground service only if boost is enabled
-                VolumeBoosterService.startService(reactContext)
-                
-                if (!isServiceBound) {
-                    val intent = Intent(reactContext, VolumeBoosterService::class.java)
-                    reactContext.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+            if (enabled) {
+                if (isBoostEnabled) {
+                    safelyReleaseLoudnessEnhancer()
+                    VolumeBoosterService.startService(reactContext, currentBoostLevel, isAppOnlyBoost, true)
+                    
+                    if (!isServiceBound) {
+                        val intent = Intent(reactContext, VolumeBoosterService::class.java)
+                        reactContext.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+                    } else {
+                        volumeBoosterService?.syncState(true, currentBoostLevel, isAppOnlyBoost)
+                    }
                 }
-                
                 promise.resolve(true)
             } else {
-                // Stop foreground service if background mode is turned off or boost is disabled
                 if (isServiceBound) {
                     try {
+                        volumeBoosterService?.enableBoost(false)
                         reactContext.unbindService(serviceConnection)
                     } catch (e: Exception) {
                         android.util.Log.e("VolumeBoosterModule", "Error unbinding service", e)
@@ -671,6 +734,10 @@ class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : R
                     volumeBoosterService = null
                 }
                 VolumeBoosterService.stopService(reactContext)
+                
+                if (isBoostEnabled && currentBoostLevel > 0) {
+                    applyBoostSafely(currentBoostLevel, isAppOnlyBoost)
+                }
                 
                 promise.resolve(false)
             }
@@ -709,11 +776,11 @@ class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : R
         }
 
         val targetSessionId = if (appOnly) audioSessionID else 0
+        val gainInMb = calculateGainInMb(boostLevel)
         try {
             if (loudnessEnhancer == null) {
                 loudnessEnhancer = LoudnessEnhancer(targetSessionId)
             }
-            val gainInMb = boostLevel * 25
             loudnessEnhancer?.setTargetGain(gainInMb)
             loudnessEnhancer?.enabled = true
         } catch (e: Exception) {
@@ -721,7 +788,6 @@ class VolumeBoosterModule(private val reactContext: ReactApplicationContext) : R
             safelyReleaseLoudnessEnhancer()
             try {
                 loudnessEnhancer = LoudnessEnhancer(targetSessionId)
-                val gainInMb = boostLevel * 25
                 loudnessEnhancer?.setTargetGain(gainInMb)
                 loudnessEnhancer?.enabled = true
             } catch (ex: Exception) {
